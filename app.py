@@ -90,7 +90,7 @@ user_input = st.text_area(
 st.caption("⚠️ 個人を特定できる情報の入力はお控えください。")
 
 if st.button("脳のスキャンを開始する", use_container_width=True):
-    if not user_msg:
+    if not user_input:
         st.error("解析するための入力データが必要です。")
     else:
         with st.spinner("脳内物質のデータをデコード中..."):
