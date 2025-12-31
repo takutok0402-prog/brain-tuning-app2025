@@ -12,8 +12,7 @@ try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=API_KEY)
 except KeyError:
-    st.error("APIキーが設定されていません。Streamlitの管理画面で設定してください。")git remote add origin https://github.com/takutok0402-prog/brain-tuning-app2.git
-
+    st.error("APIキーが設定されていません。Streamlitの管理画面で設定してください。")
 # ページ構成
 st.set_page_config(page_title="Brain Tuning Assistant", page_icon="🧠", layout="wide")
 
@@ -192,4 +191,5 @@ if "summary" in st.session_state:
         st.text_area("この解析結果を元に、今の自分に必要な言葉を整えてください。", 
                      value="今のしんどさは脳内物質の影響だとわかった。まずは焦らずに上記のアクションを試してみよう。", height=80)
         if st.button("送信（ログ保存）"):
+
             st.balloons()
