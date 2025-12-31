@@ -17,7 +17,7 @@ genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
 
 # ★修正ポイント：最新の安定版モデル「gemini-2.5-flash」に変更
 # これにより404エラー（モデルが見つからない）を回避します
-model = genai.GenerativeModel('gemini-2.5-flash') 
+model = genai.GenerativeModel('gemini-2.5-flash-lite') 
 
 # 4. 入力エリア
 user_input = st.text_area(
@@ -62,3 +62,4 @@ if st.button("脳内物質をデバッグする"):
                     st.error(f"エラーが発生しました: {e}")
     else:
         st.warning("今の状況を入力してください。")
+
