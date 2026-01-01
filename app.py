@@ -49,7 +49,8 @@ if st.button("デバッグを開始する"):
                 if response.text:
                     st.subheader("🛠 分析結果と提案")
                     st.markdown(response.text)
-                    st.divider()
+                    # 分析結果の表示後に追加
+                st.divider() # 区切り線
                 with st.expander("💡 解決策に納得がいかない、またはもっと深く相談したい方へ"):
     st.write("AIの提案がしっくりこない場合や、個別の事情を直接話したい場合は、以下の方法をお試しください。")
     
@@ -70,4 +71,5 @@ if st.button("デバッグを開始する"):
                 st.error(f"エラーが発生しました。時間を置いてお試しください。({e})")
     else:
         st.info("分析したい内容を入力してください。")
+
 
