@@ -50,6 +50,18 @@ if st.button("デバッグを開始する"):
                     st.subheader("🛠 分析結果と提案")
                     st.markdown(response.text)
                     st.divider()
+                with st.expander("💡 解決策に納得がいかない、またはもっと深く相談したい方へ"):
+    st.write("AIの提案がしっくりこない場合や、個別の事情を直接話したい場合は、以下の方法をお試しください。")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("別の視点から再分析する"):
+            # セッション状態をクリアして、入力を促すか自動で再生成
+            st.info("さらに具体的なエピソードを書き足して、もう一度『デバッグを開始』してみてください。")
+    
+    with col2:
+        # 直接問い合わせ（解決サービスへの入口）
+        st.link_button("直接相談・問い合わせる", "https://your-contact-link.com")
                     st.caption("※本内容は医学的診断ではありません。")
                 else:
                     st.error("AIからの返答が空でした。もう一度送信してください。")
@@ -58,3 +70,4 @@ if st.button("デバッグを開始する"):
                 st.error(f"エラーが発生しました。時間を置いてお試しください。({e})")
     else:
         st.info("分析したい内容を入力してください。")
+
