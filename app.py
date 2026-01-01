@@ -14,7 +14,7 @@ st.markdown("---")
 
 # 2. APIキーの設定
 if "GEMINI_API_KEY" not in st.secrets:
-    st.error("APIキーが設定されていません。")
+    st.error("APIキーが設定されていません。StreamlitのSecretsを設定してください。")
     st.stop()
 
 genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
@@ -37,7 +37,7 @@ st.warning("⚠️ **【禁止事項】** 個人情報は入力しないでく�
 if st.button("🚀 脳内物質をデバッグ・分析する", use_container_width=True):
     if user_input:
         with st.spinner("脳内のバイオメカニズムをスキャン中..."):
-            # プロンプト：静と動の2パターン提示
+            # プロンプト：「直（すなお）」を軸にした静と動の2パターン提示
             prompt = f"""
             あなたは脳科学、神経科学、および臨床心理学の権威であり、ユーザーが自分自身の「直（すなお）」な状態に立ち返るのを支援するパートナーです。
             
@@ -55,14 +55,15 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
             """
             
             try:
+                # 生成実行
                 response = model.generate_content(prompt)
                 
                 if response and response.text:
                     st.success("✅ デバッグが完了しました")
                     st.markdown("---")
-                    st.markdown(response.text)
+                    st.markdown(response.text) # AIの回答を表示
                     
-                    # エスケープハッチ（不満・問い合わせボタン）
+                    # --- エスケープハッチ（不満・問い合わせボタン） ---
                     st.divider() 
                     with st.expander("💡 提案に納得がいかない、または直接相談したい方へ"):
                         st.write("AIの提案が『直（すなお）』な感覚としっくりこない場合は、以下のオプションをご利用ください。")
@@ -73,10 +74,12 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
                         with col2:
                             # 解決（出口）サービスへのリンク
                             st.link_button("直接問い合わせ・専門家に相談", "https://your-contact-link.com")
-
+                    
                     st.markdown("---")
-                    # ここがエラーの箇所でした。閉じカッコを確実に修正しています。
+                    # エラー箇所を確実に一行で記述し、閉じカッコを修正
                     st.caption("※本内容は医学的診断ではありません。入力データはAIの学習に利用されない安全な環境で処理されています。")
+                    # ----------------------------------------------
+
                 else:
                     st.error("AIから有効な回答が得られませんでした。")
 
@@ -84,3 +87,4 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
                 st.error(f"デバッグ中にエラーが発生しました。時間を置いて再度お試しください。 (詳細: {e})")
     else:
         st.info("まずは今の状況を具体的に入力してください。")
+        
