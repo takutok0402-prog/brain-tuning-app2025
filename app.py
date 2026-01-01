@@ -22,7 +22,7 @@ model = genai.GenerativeModel('gemini-2.5-flash-lite')
 # 4. 入力エリア
 user_input = st.text_area(
     "今の状況を詳しく教えてください", 
-    placeholder="（例）嫌なことを考え出して止まらない/ 勉強中、別れた恋人を思い出して集中できない 等",
+    placeholder="（例）嫌なことを考え出して止まらない/ ぼーっとしてしまい集中できない 等",
     help="「何が起きたか」「何について考えてしまうか」など、具体的であるほど正確な分析が可能です。"
 )
 
@@ -62,4 +62,5 @@ if st.button("脳内物質をデバッグする"):
                     st.error(f"エラーが発生しました: {e}")
     else:
         st.warning("今の状況を入力してください。")
+
 
