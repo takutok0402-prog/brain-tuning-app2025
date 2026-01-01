@@ -88,3 +88,4 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
         st.info("まずは今の状況を具体的に入力してください。")
         
 
+
