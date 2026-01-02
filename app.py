@@ -14,17 +14,22 @@ st.markdown("---")
 
 import os  # ファイルの冒頭（import streamlit as st の下あたり）に追加
 
-# --- 2. APIキーの設定（修正版） ---
-# Renderの環境変数(os.getenv)を優先し、なければStreamlitのSecrets(st.secrets)を探す
+import os  # コードの1行目（import streamlit as st の下など）に必ず追加
+
+# --- 2. APIキーの設定（Render対応版） ---
+# 1. Renderの環境変数から取得を試みる
 api_key = os.getenv("GEMINI_API_KEY")
 
+# 2. 環境変数になければ、StreamlitのSecretsから取得を試みる（互換性のため）
 if not api_key:
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
     except Exception:
-        st.error("APIキーが設定されていません。RenderのEnvironment Variables、またはSecretsを確認してください。")
+        # どちらにもない場合はエラーを表示して停止
+        st.error("APIキーが見つかりません。RenderのDashboardで 'GEMINI_API_KEY' を設定してください。")
         st.stop()
 
+# 取得した鍵を適用
 genai.configure(api_key=api_key)
 
 # 有料プラン（従量課金）で最も推奨される最新モデル
@@ -95,6 +100,7 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
     else:
         st.info("まずは今の状況を具体的に入力してください。")
         
+
 
 
 
