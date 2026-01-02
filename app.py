@@ -12,12 +12,20 @@ st.title("🧠 脳内物質翻訳デバッガー")
 st.subheader("〜 脳科学と心理学に基づく精密デバッグ 〜")
 st.markdown("---")
 
-# 2. APIキーの設定
-if "GEMINI_API_KEY" not in st.secrets:
-    st.error("APIキーが設定されていません。StreamlitのSecretsを設定してください。")
-    st.stop()
+import os  # ファイルの冒頭（import streamlit as st の下あたり）に追加
 
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+# --- 2. APIキーの設定（修正版） ---
+# Renderの環境変数(os.getenv)を優先し、なければStreamlitのSecrets(st.secrets)を探す
+api_key = os.getenv("GEMINI_API_KEY")
+
+if not api_key:
+    try:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    except Exception:
+        st.error("APIキーが設定されていません。RenderのEnvironment Variables、またはSecretsを確認してください。")
+        st.stop()
+
+genai.configure(api_key=api_key)
 
 # 有料プラン（従量課金）で最も推奨される最新モデル
 model = genai.GenerativeModel('gemini-2.5-flash') 
@@ -87,6 +95,7 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
     else:
         st.info("まずは今の状況を具体的に入力してください。")
         
+
 
 
 
