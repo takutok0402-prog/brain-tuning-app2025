@@ -104,6 +104,7 @@ if st.session_state.get('mode'):
     st.info(f"【{'強制リセット' if mode=='reset' else 'ディープ・調律'}】用のメニューを表示します。")
     # ここに音楽リストや動画タブを表示
     st.tabs(["🎵 音楽", "📺 動画", "🏃 運動"])
+    
 # --- エスケープハッチ（不満・問い合わせボタン） ---
 st.divider() 
     with st.expander("💡 提案に納得がいかない、または直接相談したい方へ"):
@@ -128,6 +129,7 @@ st.markdown("---")
         
 
     
+
 
 
 
