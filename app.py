@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+import os
 
 # 1. ページ設定
 st.set_page_config(
@@ -8,17 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("🧠 脳内物質翻訳デバッガー")
-st.subheader("〜 脳科学と心理学に基づく精密デバッグ 〜")
-st.markdown("---")
-
-import os  # ファイルの冒頭（import streamlit as st の下あたり）に追加
-
-import os  # コードの1行目（import streamlit as st の下など）に必ず追加
-
-import os  # ファイルの1行目付近に移動させてください
-
-# --- 2. APIキーの設定（完全修正版） ---
+# --- 2. APIキーの設定（完全修正版を統合） ---
 # st.secretsを直接触らず、まず環境変数(os.getenv)をチェックする
 api_key = os.getenv("GEMINI_API_KEY")
 
@@ -38,79 +29,78 @@ if not api_key:
 # 鍵を適用
 genai.configure(api_key=api_key)
 
-# 有料プラン（従量課金）で最も推奨される最新モデル
-model = genai.GenerativeModel('gemini-2.5-flash') 
+# 有料プラン（従量課金）で最も推奨されるモデル（※2.5-flashがエラーになる場合は1.5-flashをお試しください）
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # 3. ユーザー入力エリア
-st.markdown("#### 📥 現在のデバッグ対象（状況）を入力してください")
+st.title("🧠 脳内物質翻訳デバッガー")
+st.markdown("#### 📥 現在の状況を入力してください")
 user_input = st.text_area(
     label="状況詳細",
     label_visibility="collapsed",
-    placeholder="（例）嫌なことを考え続けてしまう / ぼーっとしてしまい集中できない 等",
+    placeholder="（例）嫌なことが頭から離れず、何も手につかない...",
     height=150
 )
 
-st.warning("⚠️ **【禁止事項】** 個人情報は入力しないでください。")
-
 # 4. デバッグ実行
-if st.button("🚀 脳内物質をデバッグ・分析する", use_container_width=True):
+if st.button("🚀 フル・スキャニングを開始する", use_container_width=True):
     if user_input:
-        with st.spinner("脳内のバイオメカニズムをスキャン中..."):
-            # プロンプト：「直（すなお）」を軸にした静と動の2パターン提示
+        with st.spinner("脳内の全バイオネットワークを解析中..."):
+            # プロンプトの強化：詳細な物質分析を依頼
             prompt = f"""
-            あなたは脳科学、神経科学、および臨床心理学の権威であり、ユーザーが自分自身の「直（すなお）」な状態に立ち返るのを支援するパートナーです。
-            
-            【基本理念：直（すなお）】
-            「直」とは、今の自分の状態を脚色せず、良い・悪いの判断を脇に置いて、ありのままに認めることです。
-            
-            【回答の構成ルール】
-            1. 現状の脳内スキャン（分析）: 脳内物質バランスを科学的に言語化。
-            2. 「静（せい）」のデバッグ（ゆっくり休む）: 脳を停止させ、クリーンアップするアプローチ（DMNの起動）。
-            3. 「動（どう）」のデバッグ（アクションを起こす）: 報酬系を再起動し、エンジンをかけるアプローチ。
-            4. メカニズムの科学的詳説: なぜその行動が特定の物質に作用するのか解説。
-            5. 「直（すなお）」な感覚への問いかけ: どちらがしっくりくるかユーザーに確認。
-
+            あなたは神経科学と臨床心理学の権威です。以下の状況を「脳内デバッグ」してください。
+            【分析の必須項目】
+            1. 伝達物質バランス：DA(期待), 5-HT(安定), NA(集中/緊張), OT(愛/絆), GABA(抑制)の状態。
+            2. ネットワーク解析：DMN(内省)の暴走度、TPN(実行)への切り替え、SN(司令塔)の疲労。
+            3. ストレスレベル：コルチゾールによるオーバーヒートの有無。
+            4. 論理的根拠：なぜ特定の音楽や運動がデバッグに有効なのか。
             状況: {user_input}
             """
             
             try:
-                # 生成実行
                 response = model.generate_content(prompt)
-                
                 if response and response.text:
-                    st.success("✅ デバッグが完了しました")
-                    st.markdown("---")
-                    st.markdown(response.text) # AIの回答を表示
-                    
-                    # --- エスケープハッチ（不満・問い合わせボタン） ---
-                    st.divider() 
-                    with st.expander("💡 提案に納得がいかない、または直接相談したい方へ"):
-                        st.write("AIの提案が『直（すなお）』な感覚としっくりこない場合は、以下のオプションをご利用ください。")
-                        with col1:
-                            if st.button("別の視点で再分析する"):
-                                st.info("状況を詳しく書き足して、もう一度ボタンを押してみてください。")
-                        with col2:
-                            # 解決（出口）サービスへのリンク
-                            st.link_button("直接問い合わせ・専門家に相談", "https://your-contact-link.com")
-                    
-                    st.markdown("---")
-                    # エラー箇所を確実に一行で記述し、閉じカッコを修正
-                    st.caption("本内容は医学的診断ではありません。入力データはAIの学習に利用されない安全な環境で処理されています。")
-                    # ----------------------------------------------
-                else:
-                    st.error("AIから有効な回答が得られませんでした。")
-
+                    st.session_state.result = response.text
+                    st.session_state.show_result = True
             except Exception as e:
-                st.error(f"デバッグ中にエラーが発生しました。時間を置いて再度お試しください。 (詳細: {e})")
+                st.error(f"デバッグエラー: {e}")
     else:
-        st.info("まずは今の状況を具体的に入力してください。")
-        
+        st.info("まずは状況を入力してください。")
 
+# 5. 分析結果とアクションの表示
+if st.session_state.get('show_result'):
+    st.markdown("---")
+    st.markdown("### 🔍 脳内デバッグ報告書")
+    st.markdown(st.session_state.result)
 
+    # 物質の状態を多角的に表示
+    st.divider()
+    st.subheader("📊 詳細物質バランス（推測）")
+    cols = st.columns(3)
+    with cols[0]:
+        st.progress(20, text="5-HT (セロトニン)")
+        st.progress(10, text="DA (ドーパミン)")
+    with cols[1]:
+        st.progress(80, text="NA (ノルアド)")
+        st.progress(15, text="OT (オキシトシン)")
+    with cols[2]:
+        st.progress(5, text="GABA (抑制力)")
+        st.progress(90, text="Cortisol (ストレス)")
 
+    # 2つのルート選択
+    st.markdown("---")
+    st.subheader("💡 どちらのデバッグが必要ですか？")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🚀 強制リセット（外へ集中）"):
+            st.session_state.mode = 'reset'
+    with c2:
+        if st.button("🌿 ディープ・調律（内を癒やす）"):
+            st.session_state.mode = 'tuning'
 
-
-
-
-
-
+# 6. コンテンツ表示（選択された場合）
+if st.session_state.get('mode'):
+    mode = st.session_state.mode
+    st.info(f"【{'強制リセット' if mode=='reset' else 'ディープ・調律'}】用のメニューを表示します。")
+    # ここに音楽リストや動画タブを表示
+    st.tabs(["🎵 音楽", "📺 動画", "🏃 運動"])
