@@ -114,8 +114,7 @@ if st.session_state.get('mode'):
         with col2:
             # 解決（出口）サービスへのリンク
             st.link_button("直接問い合わせ・専門家に相談", "https://your-contact-link.com")
-                    
-                    st.markdown("---")
+    st.markdown("---")
                     # エラー箇所を確実に一行で記述し、閉じカッコを修正
                     st.caption("本内容は医学的診断ではありません。入力データはAIの学習に利用されない安全な環境で処理されています。")
                     # ----------------------------------------------
@@ -126,6 +125,9 @@ if st.session_state.get('mode'):
                 st.error(f"デバッグ中にエラーが発生しました。時間を置いて再度お試しください。 (詳細: {e})")
     else:
         st.info("まずは今の状況を具体的に入力してください。")
+        
+
+    
 
 
 
