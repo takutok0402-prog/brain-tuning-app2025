@@ -86,7 +86,6 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
                     st.divider() 
                     with st.expander("💡 提案に納得がいかない、または直接相談したい方へ"):
                         st.write("AIの提案が『直（すなお）』な感覚としっくりこない場合は、以下のオプションをご利用ください。")
-                        col1, col2 = st.columns(2)
                         with col1:
                             if st.button("別の視点で再分析する"):
                                 st.info("状況を詳しく書き足して、もう一度ボタンを押してみてください。")
@@ -106,6 +105,7 @@ if st.button("🚀 脳内物質をデバッグ・分析する", use_container_wi
     else:
         st.info("まずは今の状況を具体的に入力してください。")
         
+
 
 
 
