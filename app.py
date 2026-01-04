@@ -2,18 +2,12 @@ import streamlit as st
 import google.generativeai as genai
 import os
 
-# --- 1. ページ設定・デザイン注入 ---
-st.set_page_config(page_title="脳内物質デバッガー | SUNAO", page_icon="🧠", layout="wide")
-
-# カスタムCSSで「アプリ感」を出す
-st.markdown("""
-    <style>
-    .main { background-color: #f8f9fa; }
-    .stButton>button { width: 100%; border-radius: 25px; height: 3.5em; background-color: #4A90E2; color: white; font-weight: bold; }
-    .stProgress > div > div > div > div { background-color: #4CAF50; }
-    .report-box { padding: 20px; border-radius: 15px; background-color: white; border: 1px solid #e0e0e0; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
-    </style>
-    """, unsafe_allow_html=True)
+# 1. ページ設定
+st.set_page_config(
+    page_title="脳内物質デバッガー | SUNAO Professional", 
+    page_icon="🧠",
+    layout="wide"
+)
 
 # --- 2. APIキーの設定（完全修正版を統合） ---
 # st.secretsを直接触らず、まず環境変数(os.getenv)をチェックする
@@ -36,96 +30,98 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 # 最新モデルの指定
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
+
 
 # セッション状態の初期化
-if 'mode' not in st.session_state: st.session_state.mode = None
-if 'show_result' not in st.session_state: st.session_state.show_result = False
-if 'result_text' not in st.session_state: st.session_state.result_text = ""
+for key in ['mode', 'show_result', 'result_text']:
+    if key not in st.session_state:
+        st.session_state[key] = None if key == 'mode' else (False if key == 'show_result' else "")
 
-# --- 3. メインレイアウト ---
+# 3. デザインCSS
+st.markdown("""
+    <style>
+    .report-card { padding: 25px; border-radius: 15px; background-color: #ffffff; border-left: 10px solid #4A90E2; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .stProgress > div > div > div > div { background-image: linear-gradient(to right, #4CAF50, #8BC34A); }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 4. メインUI
 st.title("🧠 脳内物質翻訳デバッガー")
-st.caption("〜 あなたの『直（すなお）』な状態を取り戻すための精密調律システム 〜")
+st.subheader("〜 あなたの『直（すなお）』な状態を取り戻すための精密調律システム 〜")
 
-with st.container():
-    st.markdown("#### 📥 現在の脳内状況をスキャン")
-    user_input = st.text_area("今の気分や、抱えているモヤモヤを具体的に教えてください", height=120, placeholder="（例）嫌なことが頭から離れず、何も手につかない...")
+user_input = st.text_area("今の気分や、抱えているモヤモヤを具体的に教えてください", height=120, placeholder="（例）DNS設定が通らず、期待と不安で集中できない...")
 
-    if st.button("🚀 フル・スキャニングを実行する"):
-        if user_input:
-            with st.spinner("脳内のバイオネットワークを解析中..."):
-                prompt = f"""
-                あなたは神経科学と臨床心理学の権威です。以下の状況を、5-HT, DA, NA, OT, GABA, Cortisolのバランスと、DMN/TPNの観点から詳細にデバッグ分析してください。
-                最後に、なぜ『爆揚』か『浄化』が必要なのかを科学的に結論づけてください。
-                状況: {user_input}
-                """
-                try:
-                    response = model.generate_content(prompt)
-                    st.session_state.result_text = response.text
-                    st.session_state.show_result = True
-                except Exception as e:
-                    st.error(f"解析エラー: {e}")
+if st.button("🚀 フル・スキャニングを実行", use_container_width=True):
+    if user_input:
+        with st.spinner("脳内のバイオネットワークを解析中..."):
+            prompt = f"""
+            あなたは神経科学の権威です。以下の状況を、脳内物質バランスとネットワークの観点から簡単に分析してください。
+            【分析必須項目】
+            - DA, 5-HT, NA, OT, GABA, Endorphin, Cortisol の各状態（%推測）。
+            - DMN（内省）の暴走度、TPN（実行）の活性度。
+            - どちらのデバッグルート（強制リセット or ディープ調律）が「直（すなお）」な解決になるか。
+            状況: {user_input}
+            """
+            try:
+                response = model.generate_content(prompt)
+                st.session_state.result_text = response.text
+                st.session_state.show_result = True
+            except Exception as e:
+                st.error(f"モデル接続エラー: {e}。モデル名を変更して再試行してください。")
+    else:
+        st.info("状況を入力してください。")
 
-# --- 4. 解析結果の表示 ---
+# 5. 解析結果とビジュアル表示
 if st.session_state.show_result:
     st.markdown("---")
-    col_rep, col_stat = st.columns([2, 1])
+    col_left, col_right = st.columns([3, 2])
 
-    with col_rep:
+    with col_left:
         st.markdown("### 🔍 脳内デバッグ報告書")
-        st.markdown(f"<div class='report-box'>{st.session_state.result_text}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='report-card'>{st.session_state.result_text}</div>", unsafe_allow_html=True)
 
-    with col_stat:
-        st.markdown("### 📊 物質バランス")
-        st.progress(25, text="5-HT (セロトニン)")
-        st.progress(15, text="DA (ドーパミン)")
-        st.progress(85, text="NA (ノルアド)")
-        st.progress(95, text="Cortisol (ストレス)")
+    with col_right:
+        st.markdown("### 📊 推定バイオ・ステータス")
+        # 物質スキャン（セロトニン・ドーパミン以外も含む）
+        st.progress(30, text="安定：セロトニン ($5-HT$)")
+        st.progress(20, text="快感：ドーパミン ($DA$)")
+        st.progress(85, text="覚醒：ノルアドレナリン ($NA$)")
+        st.progress(15, text="絆：オキシトシン ($OT$)")
+        st.progress(10, text="抑制：$GABA$")
+        st.progress(95, text="負荷：コルチゾール")
+        
         st.divider()
-        st.write("**推奨ネットワーク切り替え**")
-        st.info("DMN（内省）→ TPN（集中）への移行を推奨")
+        st.write("**🧠 ネットワーク・バランス**")
+        st.markdown("🔴 **$DMN$（反芻思考）**: 活性過多")
+        st.markdown("⚪ **$TPN$（外部集中）**: 低下中")
 
-    st.markdown("### 💡 どちらのデバッグルートを選択しますか？")
+    # 6. ルート選択
+    st.markdown("### 💡 どちらのデバッグを開始しますか？")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("🚀 強制リセット（外へ集中）"): st.session_state.mode = 'reset'
     with c2:
         if st.button("🌿 ディープ・調律（内を癒やす）"): st.session_state.mode = 'tuning'
 
-# --- 5. モード別：厳選処方箋 ---
+# 7. モード別メニュー
 if st.session_state.mode:
     st.markdown("---")
     mode = st.session_state.mode
-    st.subheader("💊 あなた専用の処方箋（Prescription）")
+    st.success(f"【{'強制リセット' if mode=='reset' else 'ディープ・調律'}】メニューをロードしました。")
     
-    tab1, tab2, tab3 = st.tabs(["🎵 音楽デバッグ", "📺 視覚デバッグ", "🚶 身体アプローチ"])
-    
+    tab1, tab2, tab3 = st.tabs(["🎵 音楽", "📺 動画", "🚶 身体活動"])
     with tab1:
         if mode == 'reset':
-            st.write("🔥 **爆揚（ドッパドッパドーパミン）14選**")
-            songs = ["オレンジ / SPYAIR", "シュガーソングとビターステップ / UNISON SQUARE GARDEN", "The Beginning / ONE OK ROCK", "アイドル / YOASOBI"]
-            for song in songs: st.checkbox(song, key=song)
-            st.video("https://www.youtube.com/watch?v=scXpP77p7no") # オレンジ
+            st.write("🔥 **爆揚（ドーパミン）リスト**")
+            st.video("https://www.youtube.com/watch?v=scXpP77p7no") # オレンジ/SPYAIR
         else:
-            st.write("💧 **浄化（Progress）9選**")
-            songs = ["Progress / スガシカオ", "明日はきっといい日になる / 高橋優", "虹 / 高橋優", "ファンファーレ / sumika"]
-            for song in songs: st.checkbox(song, key=song)
-            st.video("https://www.youtube.com/watch?v=J7VM_2llOcg") # Progress
-
+            st.write("💧 **浄化（Progress）リスト**")
+            st.video("https://www.youtube.com/watch?v=J7VM_2llOcg") # Progress/スガシカオ
     with tab2:
-        if mode == 'reset':
-            st.write("🏆 **自分にもできると思える勇気の映像**")
-            st.write("・箱根駅伝：限界突破のシーン\n・大谷翔平：挑戦の軌跡")
-        else:
-            st.write("💖 **温かさに触れて浄化される映像**")
-            st.write("・JR東海：新幹線CM（会いにいこう）\n・箱根駅伝：襷がつなぐ絆の物語")
-
+        st.write("箱根駅伝、大谷選手、新幹線のCMなど、視覚から脳を調律します。")
     with tab3:
-        st.write("🏃 **フィジカル・デバッグ**")
-        if mode == 'reset': st.write("・1分間早歩き\n・骨盤を起こすピラティス")
-        else: st.write("・深呼吸と骨盤の安定\n・お尻ほぐしストレッチ")
+        st.write("ピラティス、散歩、お尻の筋肉ほぐしなど、身体からのアプローチ。")
 
-# --- 7. フッター（免責事項） ---
 st.markdown("---")
-st.caption("本内容は医学的診断ではありません。入力データはAIの学習に利用されない安全な環境で処理されています。")
-
+st.caption("本内容は医学的診断ではありません。入力データは安全な環境で処理されています。")
