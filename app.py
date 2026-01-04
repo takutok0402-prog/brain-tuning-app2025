@@ -43,7 +43,7 @@ for key in ['mode', 'show_result', 'result_text']:
 
 # --- 3. アプリケーション・メイン ---
 st.markdown("<h1 class='main-title'>🧠 脳内分析ツール</h1>", unsafe_allow_html=True)
-st.caption("〜 あなたの『直（すなお）』な状態を取り戻すための精密調律システム 〜")
+st.subheader("〜 あなたの『直（すなお）』な状態を取り戻すための精密調律システム 〜")
 
 st.divider()
 
@@ -128,3 +128,4 @@ if st.session_state.mode:
 st.markdown("---")
 st.caption("© 2026 SUNAO Tuning App | Powered by Gemini 2.5-flash | Domain: sunao-tuning.jp")
 st.caption("本内容は医学的診断ではありません。入力データはAIの学習に利用されない安全な環境で処理されています。")
+
