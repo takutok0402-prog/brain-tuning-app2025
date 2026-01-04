@@ -49,7 +49,7 @@ st.caption("〜 あなたの『直（すなお）』な状態を取り戻すた�
 
 with st.container():
     st.markdown("#### 📥 現在の脳内状況をスキャン")
-    user_input = st.text_area("今の気分や、抱えているモヤモヤを具体的に教えてください", height=120, placeholder="（例）DNS設定で44時間待っていて、期待と不安が入り混じっている...")
+    user_input = st.text_area("今の気分や、抱えているモヤモヤを具体的に教えてください", height=120, placeholder="（例）嫌なことが頭から離れず、何も手につかない...")
 
     if st.button("🚀 フル・スキャニングを実行する"):
         if user_input:
@@ -128,3 +128,4 @@ if st.session_state.mode:
 # --- 7. フッター（免責事項） ---
 st.markdown("---")
 st.caption("本内容は医学的診断ではありません。入力データはAIの学習に利用されない安全な環境で処理されています。")
+
