@@ -38,7 +38,7 @@ if st.session_state.step == 1:
 # --- 3. STEP 2: 脳内精密スキャン ---
 elif st.session_state.step == 2:
     st.title("🔍 Step 2: 脳内精密スキャン")
-    user_input = st.text_area("今のモヤモヤや体の状態（お尻の痛み、腰の張りなど）を書いてください", height=150)
+    user_input = st.text_area("今のモヤモヤや体の状態（何もやる気になれない等）を書いてください", height=150)
     
     col1, col2 = st.columns(2)
     with col1: st.button("⬅ 戻る", on_click=lambda: move_to(1))
@@ -113,3 +113,4 @@ elif st.session_state.step == 4:
 st.divider()
 st.caption("© 2026 SUNAO | Verified on sunao-tuning.jp | Powered by Gemini 2.5-flash")
 st.caption("本内容は医学的診断ではありません。入力データは安全な環境で処理されています。")
+
