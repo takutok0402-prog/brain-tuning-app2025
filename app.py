@@ -98,12 +98,35 @@ if st.session_state.get('show_result'):
         if st.button("🌿 ディープ・調律（内を癒やす）"):
             st.session_state.mode = 'tuning'
 
-# 6. コンテンツ表示（選択された場合）
-if st.session_state.get('mode'):
+# 7. コンテンツ表示（モード選択後）
+if st.session_state.mode:
     mode = st.session_state.mode
-    st.info(f"【{'強制リセット' if mode=='reset' else 'ディープ・調律'}】用のメニューを表示します。")
-    # ここに音楽リストや動画タブを表示
-    st.tabs(["🎵 音楽", "📺 動画", "🏃 運動"])
+    st.info(f"【{'強制リセット' if mode=='reset' else 'ディープ・調律'}】用のメニューを表示中")
+    
+    tab1, tab2, tab3 = st.tabs(["🎵 音楽", "📺 動画", "🏃 運動"])
+    with tab1:
+        if mode == 'reset':
+            st.write("🔥 **爆揚（ドッパドッパドーパミン）リスト**")
+            st.video("https://www.youtube.com/watch?v=scXpP77p7no") # オレンジ/SPYAIR
+        else:
+            st.write("💧 **浄化（Progress）＆ しんみりリスト**")
+            st.video("https://www.youtube.com/watch?v=J7VM_2llOcg") # Progress/スガシカオ
+    
+    with tab2:
+        if mode == 'reset':
+            st.write("🏆 **自分にもできると思える勇気の映像**")
+            st.caption("箱根駅伝の限界突破シーンや、大谷選手の挑戦をチェック。")
+        else:
+            st.write("💖 **温かさに触れて浄化される映像**")
+            st.caption("新幹線のCMや、箱根駅伝の襷がつながる絆のシーンをチェック。")
+
+    with tab3:
+        if mode == 'reset':
+            st.write("🏃 **アクティブ・デバッグ**")
+            st.write("・1分間早歩き（リズム運動）\n・骨盤を起こすピラティス")
+        else:
+            st.write("🌿 **リラックス・デバッグ**")
+            st.write("・深呼吸と骨盤の安定\n・お尻ほぐしストレッチ")
     
 st.markdown("---")
 # エラー箇所を確実に一行で記述し、閉じカッコを修正
@@ -111,6 +134,7 @@ st.caption("本内容は医学的診断ではありません。入力データ�
         
 
     
+
 
 
 
