@@ -32,6 +32,12 @@ genai.configure(api_key=api_key)
 # 有料プラン（従量課金）で最も推奨されるモデル（※2.5-flashがエラーになる場合は1.5-flashをお試しください）
 model = genai.GenerativeModel('gemini-2.5-flash')
 
+# --- セッション状態の初期化（これを追加） ---
+if 'mode' not in st.session_state:
+    st.session_state.mode = None  # 最初に「mode」という箱を作っておく
+if 'show_result' not in st.session_state:
+    st.session_state.show_result = False
+
 # 3. ユーザー入力エリア
 st.title("🧠 脳内物質翻訳デバッガー")
 st.markdown("#### 📥 現在の状況を入力してください")
@@ -134,6 +140,7 @@ st.caption("本内容は医学的診断ではありません。入力データ�
         
 
     
+
 
 
 
