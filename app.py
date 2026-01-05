@@ -4,6 +4,11 @@ import os
 
 # --- 1. 初期設定 ---
 st.set_page_config(page_title="SUNAO | Brain Debugger", page_icon="🧠", layout="centered")
+# PWAの設計図をブラウザに教える
+st.markdown(
+    f'<link rel="manifest" href="/static/manifest.json">',
+    unsafe_allow_html=True
+)
 
 # セッション状態の初期化
 for key in ['step', 'stagnation', 'seeds', 'analysis_result', 'retry', 'discovery_count', 'smartphone_check']:
@@ -105,3 +110,4 @@ elif st.session_state.step == 4:
     st.success("ワクワクのターゲットが確定しました！")
     st.write("安価なドーパミンではなく、**『質の高いワクワク』**で脳を再起動しましょう。")
     st.button("最初に戻る", on_click=lambda: move_to(1))
+
