@@ -71,7 +71,7 @@ if st.session_state.step == 1:
                                   value="普通")
     
     # 2. 象限判定ロジック (インデックスで判定)
-    e_idx = ["動けない", "低め", "普通", "高め", "止まれない"].index(energy) - 2
+    e_idx = ["動きたくない", "低め", "普通", "高め", "止まれない"].index(energy) - 2
     p_idx = ["モヤモヤ・つらい", "少し嫌", "普通", "少し良い", "心地よい"].index(pleasant) - 2
     
     # デフォルト
@@ -186,3 +186,4 @@ elif st.session_state.step == 3:
     
     if st.button("ホームに戻る"):
         move_to(1)
+
