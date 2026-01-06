@@ -1,113 +1,188 @@
 import streamlit as st
 import google.generativeai as genai
 import os
+import json
 
-# --- 1. 初期設定 ---
-st.set_page_config(page_title="SUNAO | Brain Debugger", page_icon="🧠", layout="centered")
-# PWAの設計図をブラウザに教える
-st.markdown(
-    f'<link rel="manifest" href="/static/manifest.json">',
-    unsafe_allow_html=True
-)
-
-# セッション状態の初期化
-for key in ['step', 'stagnation', 'seeds', 'analysis_result', 'retry', 'discovery_count', 'smartphone_check']:
-    if key not in st.session_state:
-        st.session_state[key] = 1 if key == 'step' else (0 if key == 'discovery_count' else False)
+# --- 1. 設定とデータベース ---
+st.set_page_config(page_title="SUNAO | Tuning", page_icon="🧠", layout="centered")
 
 # API設定
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.5-flash')
+if api_key:
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-2.5-flash')
 
-def move_to(s): st.session_state.step = s
+# セッション管理
+for key in ['step', 'mode', 'brain_scan', 'mood_quadrant', 'selected_emotion']:
+    if key not in st.session_state:
+        st.session_state[key] = 1 if key == 'step' else None
 
-# --- STEP 1: How We Feel チェックイン ---
+# 画面遷移
+def move_to(step):
+    st.session_state.step = step
+    st.rerun()
+
+# --- 感情データベース (柔らかい表現に変更) ---
+# ユーザーの「心の声」をそのまま選択肢にしています
+EMOTION_DB = {
+    # 赤: エネルギー高・不快 (交感神経過活動 / 扁桃体ハイジャック)
+    "Red": [
+        "心臓がバクバクする", "じっとしていられない", "頭がパンクしそう", 
+        "何かに追われている気がする", "イライラして爆発しそう", "パニックになりそう",
+        "怖くてたまらない", "ピリピリしている", "叫び出したい", "落ち着かない"
+    ],
+    # 黄: エネルギー高・快 (ドーパミン / フロー)
+    "Yellow": [
+        "やる気に満ちている", "ワクワクしている", "いきいきしている", 
+        "集中できている", "自信がある", "新しいことをしたい", 
+        "目が冴えている", "楽しい予感がする", "もっと動きたい"
+    ],
+    # 青: エネルギー低・不快 (DMNループ / 疲弊)
+    "Blue": [
+        "やる気が出ない", "ずっと考えてしまう", "何もしたくない", 
+        "布団から出られない", "消えてしまいたい", "ため息が出る", 
+        "胸がギュッと苦しい", "涙が止まらない", "頭がぼーっとする", 
+        "自分なんてダメだ", "昔のことばかり浮かぶ", "疲れ果てた"
+    ],
+    # 緑: エネルギー低・快 (セロトニン・オキシトシン / 安定)
+    "Green": [
+        "ほっとしている", "穏やかな気持ち", "のんびりできている", 
+        "肩の力が抜けている", "今のままでいい", "優しい気持ち", 
+        "安心している", "呼吸が深い", "守られている感じ"
+    ]
+}
+
+# --- STEP 1: 気分のチェックイン ---
 if st.session_state.step == 1:
-    st.title("🌈 Step 1: 気分のチェックイン")
-    e_val = st.select_slider("⚡ エネルギー (低い ←→ 高い)", options=[-2, -1, 0, 1, 2], value=0)
-    p_val = st.select_slider("🍃 心地よさ (不快 ←→ 快い)", options=[-2, -1, 0, 1, 2], value=0)
-    st.button("次へ進む ➔", on_click=lambda: move_to(2), use_container_width=True)
-
-# --- STEP 2: 停滞 ＆ スマホ依存スキャン ---
-elif st.session_state.step == 2:
-    st.title("🔍 Step 2: 脳の『詰まり』をスキャン")
+    st.title("🌈 Step 1: 今のあなたの状態")
+    st.markdown("頭で考えず、今の**「体の感覚」**に近い場所に合わせてください。")
     
-    st.session_state.stagnation = st.text_area("今抱えている悩みや不安（仕事、練習、制作など）", height=100)
-    
-    # 【追加機能】スマホ依存のチェック
-    st.markdown("---")
-    st.write("#### 📱 脳の防衛反応チェック")
-    st.session_state.smartphone_check = st.checkbox("今日、スマホを無意識につい触ってしまいましたか？")
-    
-    if st.session_state.smartphone_check:
-        st.warning("⚠️ **もしそうであれば、それは脳が『手軽に安価なドーパミン』を求めている証拠です。**")
-        st.caption("脳は停滞による不足分を、手っ取り早い刺激で埋めようとしています。")
-
-    st.markdown("---")
-    st.session_state.seeds = st.text_input("本来好きなこと、つい調べちゃうこと（趣味・興味）")
-    
+    # 1. 象限を決めるスライダー
     col1, col2 = st.columns(2)
-    with col1: st.button("⬅ 戻る", on_click=lambda: move_to(1))
+    with col1:
+        # エネルギー表現も直感的に
+        energy = st.select_slider("⚡ 体のエネルギー", 
+                                options=["動きたくない", "低め", "普通", "高め", "止まれない"], 
+                                value="普通")
     with col2:
-        if st.button("脳内分析 ＆ 伴走開始 ➔", use_container_width=True):
-            st.session_state.discovery_count = 1
-            st.session_state.retry = True
-            move_to(3)
+        # 快・不快表現も柔らかく
+        pleasant = st.select_slider("🍃 心の心地よさ", 
+                                  options=["モヤモヤ・つらい", "少し嫌", "普通", "少し良い", "心地よい"], 
+                                  value="普通")
+    
+    # 2. 象限判定ロジック (インデックスで判定)
+    e_idx = ["動けない", "低め", "普通", "高め", "止まれない"].index(energy) - 2
+    p_idx = ["モヤモヤ・つらい", "少し嫌", "普通", "少し良い", "心地よい"].index(pleasant) - 2
+    
+    # デフォルト
+    quadrant = "Green"
+    q_label_text = "穏やか・安定"
+    q_color = "success" # 緑
+    
+    if e_idx >= 0 and p_idx < 0:
+        quadrant = "Red"
+        q_label_text = "心がざわついている (エネルギー高・モヤモヤ)"
+        q_color = "error" # 赤
+    elif e_idx >= 0 and p_idx >= 0:
+        quadrant = "Yellow"
+        q_label_text = "活動的・いきいき (エネルギー高・心地よい)"
+        q_color = "warning" # 黄
+    elif e_idx < 0 and p_idx < 0:
+        quadrant = "Blue"
+        q_label_text = "エネルギー切れ・沈んでいる (エネルギー低・モヤモヤ)"
+        q_color = "info" # 青
+    else: # Low/Pleasant or Neutral
+        quadrant = "Green"
+        q_label_text = "リラックス・安定 (エネルギー低・心地よい)"
+        q_color = "success" # 緑
 
-# --- STEP 3: 脳内分析 ＆ ワクワク伴走（スマホ解説付き） ---
+    # エリア表示（英語排除）
+    st.markdown(f"今のエリア： :{q_color}[**{q_label_text}**]")
+    
+    # 3. 具体的な言葉の選択
+    st.markdown("今の気分に一番近い言葉はどれですか？")
+    
+    target_emotions = EMOTION_DB[quadrant]
+    
+    selected = st.selectbox("選んでください（直感でOK）", ["(リストから選ぶ)"] + target_emotions)
+    
+    if selected != "(リストから選ぶ)":
+        st.session_state.mood_quadrant = quadrant
+        st.session_state.selected_emotion = selected
+        
+        st.markdown(f"あなたの状態： **「{selected}」**")
+        
+        if st.button("この感覚をAIに伝えて整える ➔", type="primary", use_container_width=True):
+            move_to(2)
+
+# --- STEP 2: 脳内スキャンとAI解析 ---
+elif st.session_state.step == 2:
+    st.title("🔍 Step 2: 脳のデバッグ")
+    st.markdown(f"**「{st.session_state.selected_emotion}」**と感じているんですね。")
+    st.markdown("もし、その気持ちに具体的な理由（出来事）や、体の痛む場所があれば教えてください。")
+    
+    user_input = st.text_area("（空欄でも大丈夫です）", height=100, 
+                            placeholder="例：○○によって過去を思い出してしまった、呼吸が浅い、胃がキリキリする...")
+    
+    if st.button("脳の状態を分析する ➔", use_container_width=True):
+        if not api_key:
+            st.error("APIキーが設定されていません")
+        else:
+            with st.spinner("脳の配線（ニューロン）の状態を確認中..."):
+                try:
+                    # プロンプト：入力された「話し言葉の感情」を元に分析
+                    prompt = f"""
+                    あなたは『脳神経科学に基づいた優しい調律師』です。
+                    ユーザーの入力に基づき、脳の状態を分析してJSON形式で出力してください。
+
+                    【入力データ】
+                    - 選択された気分: {st.session_state.selected_emotion}
+                    - 補足情報: {user_input if user_input else "特になし"}
+
+                    【分析の視点】
+                    1. 「{st.session_state.selected_emotion}」という状態は、脳のどこ（扁桃体 or 前頭前野 or DMN）が過活動になっているサインか？
+                    2. その状態は「一時的な脳のバグ」であり、ユーザー自身の性格の問題ではないことを強調する。
+
+                    【出力JSON】
+                    {{
+                        "diagnosis": "短い見出し (例: 過去の記憶による『扁桃体アラート』)",
+                        "explanation": "ユーザーへの優しい解説 (例: 今、脳が危険を感じて『逃げろ』と命令を出しています。だから心臓がバクバクしているのです。あなたの弱さではありません。)",
+                        "amygdala_level": 0-100,
+                        "pfc_level": 0-100,
+                        "mode": "reset" (扁桃体暴走時) または "tuning" (思考ループ時),
+                        "action_title": "1分でできる脳の調律アクション名",
+                        "action_detail": "具体的なアクション内容 (例: 青いものを3つ探す、など)"
+                    }}
+                    """
+                    response = model.generate_content(prompt)
+                    cleaned = response.text.replace("```json", "").replace("```", "").strip()
+                    st.session_state.brain_scan = json.loads(cleaned)
+                    move_to(3)
+                except Exception as e:
+                    st.error(f"解析中にエラーが発生しました: {e}")
+
+# --- STEP 3: 診断結果 ---
 elif st.session_state.step == 3:
-    st.title("🧪 Step 3: 脳内解析 ＆ 伴走コーチング")
+    scan = st.session_state.brain_scan
+    st.title("📋 Step 3: 分析レポート")
     
-    if st.session_state.retry:
-        with st.spinner("Gemini 2.5-flash があなたの報酬系を解析中..."):
-            # プロンプトにスマホ逃避の解説指示を追加
-            phone_status = "あり" if st.session_state.smartphone_check else "なし"
-            prompt = f"""
-            あなたは神経科学を極めた伴走コーチです。
-            【状況】停滞：{st.session_state.stagnation} / 興味：{st.session_state.seeds} / スマホ逃避：{phone_status}
-            
-            以下の構成で回答してください：
-            1. 【脳内物質スキャン】DA, 5-HT, NA, OT, GABA, Cortisolの状態（%）。
-            2. 【スマホ逃避の解説】スマホをつい触ってしまうメカニズム（安価なドーパミンの前借り）を優しく解説。
-            3. 【3つのワクワク提案】
-               - 停滞に関連した『学び』（基礎トレ的）
-               - 全く関係ない『遊び』（リセット的）
-               - ユーザーへの『深掘り質問』（伴走）
-            """
-            response = model.generate_content(prompt)
-            st.session_state.analysis_result = response.text
-            st.session_state.retry = False
-
-    st.markdown(f"<div style='padding:20px; border-radius:15px; background-color:#ffffff; border:1px solid #ddd;'>{st.session_state.analysis_result}</div>", unsafe_allow_html=True)
+    st.subheader(f"⚡ {scan['diagnosis']}")
+    st.info(scan['explanation'])
     
-    # 物質バランスの視覚化
+    st.markdown("##### 🧠 今の脳内バランス")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"**感情センサー (扁桃体)**: {scan['amygdala_level']}%")
+        st.progress(scan['amygdala_level']/100)
+    with col2:
+        st.markdown(f"**思考エンジン (前頭前野)**: {scan['pfc_level']}%")
+        st.progress(scan['pfc_level']/100)
+        
     st.divider()
-    st.subheader("📊 推定バイオ・メーター")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.progress(20, text="期待値 ($DA$)")
-        st.progress(80, text="ストレス負荷 ($Cortisol$)")
-    with c2:
-        st.progress(15, text="安定度 ($5-HT$)")
-        st.progress(10, text="抑制力 ($GABA$)")
     
-    st.write(f"💡 提案 {st.session_state.discovery_count}回目：脳の報酬系が動きそうですか？")
-    ca, cb, cc = st.columns(3)
-    with ca:
-        if st.button("✨ これでいこう！"): move_to(4)
-    with cb:
-        if st.button("🤔 ピンとこない"):
-            st.session_state.discovery_count += 1
-            st.session_state.retry = True
-            st.rerun()
-    with cc:
-        if st.button("⬅ やり直す"): move_to(2)
-
-# --- STEP 4: 最初の一歩 ---
-elif st.session_state.step == 4:
-    st.title("🎁 Step 4: あなたへの処方箋")
-    st.success("ワクワクのターゲットが確定しました！")
-    st.write("安価なドーパミンではなく、**『質の高いワクワク』**で脳を再起動しましょう。")
-    st.button("最初に戻る", on_click=lambda: move_to(1))
-
+    st.subheader(f"💊 あなたへの処方箋：{scan['action_title']}")
+    st.success(scan['action_detail'])
+    st.caption("※ これを行うことで、脳のスイッチ(SN)が0.1度だけ正常な位置に戻ります。")
+    
+    if st.button("ホームに戻る"):
+        move_to(1)
