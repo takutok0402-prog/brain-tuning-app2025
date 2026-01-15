@@ -91,9 +91,9 @@ elif st.session_state.step == 2:
                     generation_config = {"response_mime_type": "application/json"}
                     
                     # 404エラーを防ぐため、モデル名は正確に記述してください
-                    # もし 'gemini-2.5-flash' でエラーが出る場合は 'gemini-1.5-flash' に戻してみてください
+                    # もし'gemini-2.5-flash'でエラーが出る場合は 'gemini-1.5-flash' に戻してみてください
                     structured_model = genai.GenerativeModel(
-                        model_name='gemini-2.5-flash',
+                        model_name='gemini-2.5-flash'
                         generation_config=generation_config,
                         system_instruction="""
                         あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。
@@ -169,4 +169,5 @@ elif st.session_state.step == 3:
     st.markdown(f"#### {scan['secure_message']}")
     
     if st.button("最初に戻って調律を続ける"): move_to(1)
+
 
