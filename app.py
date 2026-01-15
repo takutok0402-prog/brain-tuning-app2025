@@ -94,13 +94,13 @@ elif st.session_state.step == 2:
                     # もし'gemini-2.5-flash'でエラーが出る場合は 'gemini-1.5-flash' に戻してみてください
                     structured_model = genai.GenerativeModel(
                         model_name='gemini-2.5-flash'
-                        generation_config=generation_config,
+                    )
+    
                         system_instruction="""
                         あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。
                         ユーザーの不安を『生存のための自己防衛』として肯定し、
                         脳の予測バグを修正するための解析結果を必ず指定のJSON形式で返してください。
                         """
-                    )
 
                     # プロンプト：あなたの「5教科のテスト」の比喩を組み込み
                     prompt = f"""
@@ -169,5 +169,6 @@ elif st.session_state.step == 3:
     st.markdown(f"#### {scan['secure_message']}")
     
     if st.button("最初に戻って調律を続ける"): move_to(1)
+
 
 
