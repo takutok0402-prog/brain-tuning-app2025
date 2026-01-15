@@ -91,7 +91,7 @@ elif st.session_state.step == 2:
                     
                     # モデルの定義（システム指示を強化）
                     structured_model = genai.GenerativeModel(
-                        model_name='gemini-1.5-flash',
+                        model_name='gemini-2.5-flash',
                         generation_config=generation_config,
                         system_instruction="""
                         あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。
@@ -164,5 +164,6 @@ elif st.session_state.step == 3:
     
     if st.button("最初に戻って調律を続ける"):
         move_to(1)
+
 
 
