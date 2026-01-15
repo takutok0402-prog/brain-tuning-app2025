@@ -95,13 +95,7 @@ elif st.session_state.step == 2:
                     structured_model = genai.GenerativeModel(
                         model_name='gemini-2.5-flash'
                     )
-    
-                        system_instruction="""
-                        あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。
-                        ユーザーの不安を『生存のための自己防衛』として肯定し、
-                        脳の予測バグを修正するための解析結果を必ず指定のJSON形式で返してください。
-                        """
-
+                    
                     # プロンプト：あなたの「5教科のテスト」の比喩を組み込み
                     prompt = f"""
                     【解析対象】
@@ -169,6 +163,7 @@ elif st.session_state.step == 3:
     st.markdown(f"#### {scan['secure_message']}")
     
     if st.button("最初に戻って調律を続ける"): move_to(1)
+
 
 
 
