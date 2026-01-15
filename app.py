@@ -74,6 +74,7 @@ elif st.session_state.step == 2:
     st.title("🔍 Step 2: 予測マシーンの解析")
     st.markdown(f"**「{st.session_state.selected_emotion}」**という状態を分析します。")
     
+    # ユーザー入力をセッション状態で管理
     user_input = st.text_area(
         "今、頭の中を占めている『答えの出ない問い』はありますか？", 
         placeholder="例：なぜあんなことを言われたのか、嫌われたのではないか...",
@@ -81,47 +82,65 @@ elif st.session_state.step == 2:
     )
     
     if st.button("AI調律師に接続 ➔"):
-        with st.spinner("岡田尊司理論とポリヴェーガル理論を照合中..."):
-            try:
-                generation_config = {"response_mime_type": "application/json"}
-                structured_model = genai.GenerativeModel(
-                    model_name='gemini-2.5-flash'
-                    generation_config=generation_config,
-                    system_instruction="あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。ユーザーの不安を『生存のための自己防衛』として肯定し、脳の予測バグを修正するための解析を行ってください。"
-                )
+        if not api_key:
+            st.error("APIキーが設定されていません")
+        else:
+            with st.spinner("岡田尊司理論とポリヴェーガル理論を照合中..."):
+                try:
+                    # JSONモードを強制する設定
+                    generation_config = {"response_mime_type": "application/json"}
+                    
+                    # 404エラーを防ぐため、モデル名は正確に記述してください
+                    # もし 'gemini-2.5-flash' でエラーが出る場合は 'gemini-1.5-flash' に戻してみてください
+                    structured_model = genai.GenerativeModel(
+                        model_name='gemini-2.5-flash',
+                        generation_config=generation_config,
+                        system_instruction="""
+                        あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。
+                        ユーザーの不安を『生存のための自己防衛』として肯定し、
+                        脳の予測バグを修正するための解析結果を必ず指定のJSON形式で返してください。
+                        """
+                    )
 
-                prompt = f"""
-                【解析対象】
-                - 感情表現: {st.session_state.selected_emotion}
-                - 社会性の重み: {st.session_state.social_filter_val}
-                - 思考ログ: {user_input}
+                    # プロンプト：あなたの「5教科のテスト」の比喩を組み込み
+                    prompt = f"""
+                    【解析対象】
+                    - 感情: {st.session_state.selected_emotion}
+                    - 社会性の重み: {st.session_state.social_filter_val}
+                    - 思考のログ: {user_input}
 
-                【解析ガイドライン】
-                - 「嫌われたくない」という社会性が「素直な本能」を上回っているか判定してください。
-                - 不安の正体を「脳が答えのないテスト（他人の気持ち）を解こうとして起こした予測バグ」として解説してください。
-                - ポリヴェーガル理論に基づき、現在どの神経系（腹側/交感/背側）が優位か特定してください。
+                    【解析ガイドライン】
+                    - 不安の原因を「脳が『答えのないテスト（他人の気持ち）』を解こうとして起こした予測バグ」として解説してください。
+                    - 今の症状は、脳がユーザー自身を必死に守ろうとしている『生存戦略（自己防衛）』であることを伝えてください。
+                    - 社会性（他人の目）が素直な本能をどう抑圧しているか判定してください。
 
-                【出力JSON構造】
-                {{
-                    "strategy_name": "生存戦略名",
-                    "self_defense_reason": "脳があなたを守ろうとしている理由",
-                    "polyvagal_state": "腹側/交感/背側",
-                    "sociality_level": 0-100,
-                    "sunao_level": 0-100,
-                    "overwrite_action": "今すぐできる、社会性を遮断する物理的アクション",
-                    "secure_message": "安全基地（岡田先生的）からの言葉"
-                }}
-                """
-                response = structured_model.generate_content(prompt)
-                # markdownの装飾を除去してパース
-                res_text = response.text.replace("```json", "").replace("```", "").strip()
-                st.session_state.brain_scan = json.loads(res_text)
-                move_to(3)
+                    【出力JSON構造】
+                    {{
+                        "strategy_name": "生存戦略名",
+                        "self_defense_reason": "脳があなたを守ろうとしている理由",
+                        "polyvagal_state": "腹側/交感/背側",
+                        "sociality_level": 0-100,
+                        "sunao_level": 0-100,
+                        "overwrite_action": "物理的アクション",
+                        "secure_message": "安全基地としての言葉"
+                    }}
+                    """
+                    
+                    response = structured_model.generate_content(prompt)
+                    
+                    # JSONの解析（余分な文字を削ってから読み込む）
+                    res_text = response.text.strip()
+                    if res_text.startswith("```"):
+                        res_text = res_text.split("json")[-1].split("```")[0].strip()
+                        
+                    st.session_state.brain_scan = json.loads(res_text)
+                    move_to(3)
 
-            except Exception as e:
-                st.error(f"解析中にエラーが発生しました: {e}")
+                except Exception as e:
+                    st.error(f"解析中にエラーが発生しました: {e}")
 
-    if st.button("← 戻る"): move_to(1)
+    if st.button("← 戻る"):
+        move_to(1) 
 
 # --- STEP 3: 診断結果 ---
 elif st.session_state.step == 3:
@@ -150,3 +169,4 @@ elif st.session_state.step == 3:
     st.markdown(f"#### {scan['secure_message']}")
     
     if st.button("最初に戻って調律を続ける"): move_to(1)
+
