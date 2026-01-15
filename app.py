@@ -10,11 +10,13 @@ st.set_page_config(page_title="SUNAO | Attachment Tuning", page_icon="🧘", lay
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
-    # 以前の対話に基づき、より推論に強いモデル（フラッシュ版）を指定
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    # モデル名は環境に合わせて調整（2.5-flashが動作するならそのままでOK）
+    model_name = 'gemini-2.5-flash' 
+else:
+    st.error("APIキーが設定されていません。")
 
 # セッション管理
-for key in ['step', 'brain_scan', 'mood_quadrant', 'selected_emotion', 'attachment_style']:
+for key in ['step', 'brain_scan', 'selected_emotion', 'social_filter_val']:
     if key not in st.session_state:
         st.session_state[key] = 1 if key == 'step' else None
 
@@ -22,15 +24,11 @@ def move_to(step):
     st.session_state.step = step
     st.rerun()
 
-# --- ポリヴェーガル理論に基づいた感情データベース ---
+# --- 感情データベース ---
 EMOTION_DB = {
-    # 赤: 交感神経（闘争・逃走） - 「嫌われたくない」予測暴走
     "Red": ["心臓がバクバクする", "嫌われたくない", "頭の中で答え合わせが止まらない", "パニックになりそう", "ピリピリしている"],
-    # 黄: 腹側迷走神経（活動） - 素直なエネルギー
     "Yellow": ["ワクワクしている", "いきいきしている", "集中できている", "自信がある", "やりたいことが明確"],
-    # 青: 背側迷走神経（凍結） - 自己防衛としてのシャットダウン
     "Blue": ["やる気が出ない", "消えてしまいたい", "布団から出られない", "自分なんてダメだ", "感情が死んでいる"],
-    # 緑: 腹側迷走神経（休息） - 安全基地・安定
     "Green": ["ほっとしている", "穏やかな気持ち", "今のままでいい", "安心している", "呼吸が深い"]
 }
 
@@ -41,102 +39,91 @@ if st.session_state.step == 1:
     
     col1, col2 = st.columns(2)
     with col1:
-        energy = st.select_slider("⚡ エネルギー量", options=["動けない", "低め", "普通", "高め", "過剰"], value="普通")
+        energy_opts = ["動けない", "低め", "普通", "高め", "過剰"]
+        energy = st.select_slider("⚡ エネルギー量", options=energy_opts, value="普通")
     with col2:
-        pleasant = st.select_slider("🍃 心の心地よさ", options=["つらい", "少し嫌", "普通", "良い", "心地よい"], value="普通")
+        pleasant_opts = ["つらい", "少し嫌", "普通", "良い", "心地よい"]
+        pleasant = st.select_slider("🍃 心の心地よさ", options=pleasant_opts, value="普通")
     
-    # 簡易アタッチメント傾向（以前の「不安型」などの気づきを反映）
     st.divider()
     st.markdown("##### 今、誰か（特定の人や世間）の目が気になっていますか？")
     social_filter = st.radio("（これが『社会性』の重みになります）", 
                              ["全く気にならない（素直モード）", "少し気になる", "ずっとその人のことを考えてしまう（予測ループ中）"],
                              index=1)
+    st.session_state.social_filter_val = social_filter
 
-    # 象限判定（略：提示されたロジックを維持しつつカラー名をポリヴェーガル用語に紐付け）
-    # ... (判定ロジック)
-    quadrant = "Red" # 例として固定（実際は判定させる）
+    # --- 象限判定ロジックの実装 ---
+    e_idx = energy_opts.index(energy) - 2
+    p_idx = pleasant_opts.index(pleasant) - 2
+    
+    if e_idx >= 0 and p_idx < 0: quadrant = "Red"
+    elif e_idx >= 0 and p_idx >= 0: quadrant = "Yellow"
+    elif e_idx < 0 and p_idx < 0: quadrant = "Blue"
+    else: quadrant = "Green"
     
     target_emotions = EMOTION_DB[quadrant]
-    selected = st.selectbox("一番近い言葉を選んでください", ["(選択してください)"] + target_emotions)
+    selected = st.selectbox(f"今の感覚に近い言葉（{quadrant}エリア）", ["(選択してください)"] + target_emotions)
     
     if selected != "(選択してください)":
-        st.session_state.mood_quadrant = quadrant
         st.session_state.selected_emotion = selected
         if st.button("脳のデバッグを開始する ➔", type="primary"):
             move_to(2)
 
-# --- STEP 2: 脳のデバッグ（修正版） ---
+# --- STEP 2: 脳のデバッグ ---
 elif st.session_state.step == 2:
     st.title("🔍 Step 2: 予測マシーンの解析")
     st.markdown(f"**「{st.session_state.selected_emotion}」**という状態を分析します。")
     
-    # 1. ユーザー入力をセッション状態で管理するか、ボタンの外で確実に定義する
     user_input = st.text_area(
         "今、頭の中を占めている『答えの出ない問い』はありますか？", 
         placeholder="例：なぜあんなことを言われたのか、嫌われたのではないか...",
-        key="current_user_input" # keyを指定することでStreamlitが値を保持します
+        key="current_user_input"
     )
     
-    # 2. 解析ボタン
     if st.button("AI調律師に接続 ➔"):
-        if not api_key:
-            st.error("APIキーが設定されていません")
-        else:
-            with st.spinner("岡田尊司理論とポリヴェーガル理論を読み込み中..."):
-                try:
-                    # JSONモードを強制する設定
-                    generation_config = {
-                        "response_mime_type": "application/json",
-                    }
-                    
-                    # モデルの定義（システム指示を強化）
-                    structured_model = genai.GenerativeModel(
-                        model_name='gemini-2.5-flash',
-                        generation_config=generation_config,
-                        system_instruction="""
-                        あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。
-                        ユーザーの不安を『生存のための自己防衛』として肯定し、
-                        脳の予測バグを修正するための解析結果を必ず指定のJSON形式で返してください。
-                        """
-                    )
+        with st.spinner("岡田尊司理論とポリヴェーガル理論を照合中..."):
+            try:
+                generation_config = {"response_mime_type": "application/json"}
+                structured_model = genai.GenerativeModel(
+                    model_name='gemini-2.5-flash'
+                    generation_config=generation_config,
+                    system_instruction="あなたは岡田尊司の愛着理論とポリヴェーガル理論の専門家です。ユーザーの不安を『生存のための自己防衛』として肯定し、脳の予測バグを修正するための解析を行ってください。"
+                )
 
-                    # プロンプトの組み立て（ここでuser_inputを確実に使用）
-                    prompt = f"""
-                    【解析対象】
-                    - 感情: {st.session_state.selected_emotion}
-                    - 思考のログ: {user_input}
+                prompt = f"""
+                【解析対象】
+                - 感情表現: {st.session_state.selected_emotion}
+                - 社会性の重み: {st.session_state.social_filter_val}
+                - 思考ログ: {user_input}
 
-                    【解析ガイドライン】
-                    - 不安の原因を「脳の予測バグ（答えのないテストを解こうとしている）」として解説する。
-                    - 現在の状態をポリヴェーガル理論（腹側/交感/背側迷走神経）で分類する。
+                【解析ガイドライン】
+                - 「嫌われたくない」という社会性が「素直な本能」を上回っているか判定してください。
+                - 不安の正体を「脳が答えのないテスト（他人の気持ち）を解こうとして起こした予測バグ」として解説してください。
+                - ポリヴェーガル理論に基づき、現在どの神経系（腹側/交感/背側）が優位か特定してください。
 
-                    【出力JSON構造】
-                    {{
-                        "strategy_name": "生存戦略名",
-                        "self_defense_reason": "自己防衛の理由",
-                        "polyvagal_state": "腹側/交感/背側",
-                        "sociality_level": 0-100,
-                        "sunao_level": 0-100,
-                        "overwrite_action": "物理的アクション",
-                        "secure_message": "安全基地の言葉"
-                    }}
-                    """
-                    
-                    response = structured_model.generate_content(prompt)
-                    
-                    # JSONを解析してセッションに保存
-                    st.session_state.brain_scan = json.loads(response.text)
-                    move_to(3)
+                【出力JSON構造】
+                {{
+                    "strategy_name": "生存戦略名",
+                    "self_defense_reason": "脳があなたを守ろうとしている理由",
+                    "polyvagal_state": "腹側/交感/背側",
+                    "sociality_level": 0-100,
+                    "sunao_level": 0-100,
+                    "overwrite_action": "今すぐできる、社会性を遮断する物理的アクション",
+                    "secure_message": "安全基地（岡田先生的）からの言葉"
+                }}
+                """
+                response = structured_model.generate_content(prompt)
+                # markdownの装飾を除去してパース
+                res_text = response.text.replace("```json", "").replace("```", "").strip()
+                st.session_state.brain_scan = json.loads(res_text)
+                move_to(3)
 
-                except json.JSONDecodeError:
-                    st.error("AIの出力形式が乱れました。もう一度お試しください。")
-                except Exception as e:
-                    st.error(f"予期せぬエラーが発生しました: {e}")
+            except Exception as e:
+                st.error(f"解析中にエラーが発生しました: {e}")
 
-    if st.button("← 戻る"):
-        move_to(1)
-                
-# --- STEP 3: 診断結果（新・自律の提示） ---
+    if st.button("← 戻る"): move_to(1)
+
+# --- STEP 3: 診断結果 ---
 elif st.session_state.step == 3:
     scan = st.session_state.brain_scan
     st.title("📋 Step 3: あなたの脳の生存戦略")
@@ -156,14 +143,10 @@ elif st.session_state.step == 3:
     st.markdown(f"**現在のアクティブ神経系:** `{scan['polyvagal_state']}神経系`")
     
     with st.expander("💡 脳のバグを修正する（Overwrite）"):
-        st.write(f"今のあなたは、答えのない『他人の気持ち』というテストを解こうとしてエラーを起こしています。")
-        st.success(f"**アクション:** {scan['overwrite_action']}")
+        st.write("脳は今、予測不能な『他人の心』という問題を解こうとして熱暴走しています。")
+        st.success(f"**今すぐやるべきこと:** {scan['overwrite_action']}")
     
     st.subheader("🕊️ 安全基地からのメッセージ")
     st.markdown(f"#### {scan['secure_message']}")
     
-    if st.button("最初に戻って調律を続ける"):
-        move_to(1)
-
-
-
+    if st.button("最初に戻って調律を続ける"): move_to(1)
