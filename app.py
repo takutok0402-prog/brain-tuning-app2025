@@ -5,7 +5,14 @@ import json
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
-import japanize_matplotlib  # ← これをインポート部分に必ず追加してください
+# japanize_matplotlib は削除
+
+# --- 🆕 文字化け対策（Python 3.13対応版） ---
+from matplotlib import rcParams
+# サーバー環境でも比較的通りやすいフォント設定
+rcParams['font.family'] = 'sans-serif'
+rcParams['font.sans-serif'] = ['Hiragino Maru Gothic Pro', 'Yu Gothic', 'Meiryo', 'IPAexGothic', 'DejaVu Sans']
+
 
 
 # --- 1. システム設定 ---
@@ -167,5 +174,6 @@ elif st.session_state.step == 3:
     st.markdown(f"#### 🕊️ {scan['secure_base_msg']}")
     
     if st.button("最初に戻る"): move_to(1)
+
 
 
