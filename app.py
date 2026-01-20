@@ -5,6 +5,8 @@ import json
 import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+import japanize_matplotlib  # ← これをインポート部分に必ず追加してください
+
 
 # --- 1. システム設定 ---
 st.set_page_config(page_title="SUNAO | Attachment Tuning", page_icon="🧘", layout="centered")
@@ -165,4 +167,5 @@ elif st.session_state.step == 3:
     st.markdown(f"#### 🕊️ {scan['secure_base_msg']}")
     
     if st.button("最初に戻る"): move_to(1)
+
 
