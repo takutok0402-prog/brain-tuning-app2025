@@ -70,7 +70,7 @@ if st.session_state.step == 1:
     st.divider()
     st.markdown("##### 社会性フィルターの密度")
     st.session_state.social_filter_val = st.radio("誰かの視線や『〜すべき』という期待をどのくらい感じていますか？", 
-                             ["0%（素直に全振り）", "50%（調整中）", "100%（社会性が脳を占拠）"], index=1)
+                             ["何も気にならない", "少し気になる", "すごく気になる"], index=1)
 
     if st.session_state.selected_emotion != "(選択してください)":
         if st.button("2.5 Flash で解析を開始 ➔", type="primary"):
@@ -165,3 +165,4 @@ elif st.session_state.step == 3:
     st.markdown(f"#### 🕊️ {scan['secure_base_msg']}")
     
     if st.button("最初に戻る"): move_to(1)
+
