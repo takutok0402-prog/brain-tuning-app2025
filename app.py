@@ -81,21 +81,34 @@ if st.session_state.step == 1:
     if st.session_state.selected_emotion != "(選択してください)":
         if st.button("2.5 Flash でデバッグを開始 ➔", type="primary"): move_to(2)
 
-# --- STEP 2: 二つの声の書き出し (願望 vs 予定/義務) ---
+# --- STEP 2: 脳内ログの書き出し（「ささいな光」追加版） ---
 elif st.session_state.step == 2:
     st.title("🔍 Step 2: 脳内ログの書き出し")
-    st.markdown("矛盾を解決しようとしなくて大丈夫。二人の言い分を別々に吐き出して。")
+    st.markdown("感情を吐き出せるだけどうぞ。単語でも空白でも大丈夫。")
 
+    # 1. 葛藤の入力
     col_in1, col_in2 = st.columns(2)
     with col_in1:
         st.markdown("### 🟢 本音くん（願望）")
-        st.info("💡 **ここがポイント**\n\n言いづらい、言葉にしづらいことこそ、大切な『本音』です。スラスラ出てこなくても大丈夫。「〜したい」「戻りたい」という純粋な**願望**をここに置いてください。")
-        st.session_state.sunao_input = st.text_area("「本当はどうしたい？」", placeholder="例：あの頃に戻りたい。やりたくない。", height=250)
+        st.caption("「〜したい」「戻りたい」という純粋な願望。")
+        st.session_state.sunao_input = st.text_area("本当はどうしたい？", placeholder="例：あの頃に戻りたい。やりたくない。", height=200, key="sunao_t")
+        
     with col_in2:
         st.markdown("### 🔴 義務さん（予定・現実）")
-        st.caption("※「〜しなきゃ」「今はこうだ」という現実的な行動の指針や、社会的な声。")
-        st.session_state.social_input = st.text_area("「〜しなきゃ、現実はこうだ」", placeholder="例：前を向かなきゃ。自分がやらないといけない。", height=250)
-    
+        st.caption("「〜しなきゃ」「今はこうだ」という現実。")
+        st.session_state.social_input = st.text_area("〜しなきゃ、現実はこうだ", placeholder="例：前を向かなきゃ。自分がやらなきゃ。", height=200, key="social_t")
+
+    st.divider()
+
+    # 2. 新機能：ささいな光（Small Lights）
+    st.markdown("### 🌟 今日の「ささいな光」")
+    st.info("「しんどさが永遠に続く」という脳のバグを溶かすための、ささいなプラスを記録します。")
+    st.session_state.small_lights = st.text_area(
+        "今日、ほんの少しだけ心が動いたこと、良かったこと、親切にされたこと（解決とは無関係でOK）", 
+        placeholder="例：車に道を譲ってもらった。コーヒーが美味しかった。BUMPの曲で少し元気が出た。",
+        height=100
+    )
+
     if st.button("調律プロセスを実行 ➔", type="primary"):
         with st.spinner("無意識の声を意識の部屋へエクスポート中..."):
             try:
@@ -104,24 +117,23 @@ elif st.session_state.step == 2:
                 【解析対象】
                 - 願望（本音）: {st.session_state.sunao_input}
                 - 現実/義務（予定）: {st.session_state.social_input}
+                - ささいな光: {st.session_state.small_lights}
                 - コンディション: 疲労={st.session_state.fatigue_val}, 安全基地={st.session_state.safebase_val}
 
                 【2.5 Flash 調律ガイド】
-                1. 「願望」と「予定」が矛盾していることを、脳の不協和（バグ）ではなく「誠実さの証」として定義してください。
-                2. 「雨が降ってほしくない（願望）」けれど「降っている（現実）」という比喩を用い、感情を否定せずに現実を受け入れるプロセスを支援。
-                3. 本音くんと義務さん、それぞれの主張の背後にある「切実な理由」を言語化し、無意識から意識の部屋へ引き出します。
-                4. 二つの声の間にある「ギャップ（...）」こそが、脳が新しい現実を学習している最重要プロセスであることを伝えてください。
+                1. 「早く楽になりたい」「この苦しみは永遠だ」というユーザーが無意識に抱えるバイアスを優しく指摘し、それらを「誠実さの副産物」として定義し直してください。
+                2. 「ささいな光」を、脳が新しい現実（安全な世界）を学習するための重要な反証データとして扱い、その出来事がユーザーのどんな誠実さに繋がっているか通訳してください。
+                3. 解決を急がせず、「しんどいままでも、今日一日をクリアしたこと」を最大級に肯定してください。
 
                 【JSON構造】
                 {{
-                    "sunao_claim": "本音くんの言い分（一人称）",
-                    "social_claim": "義務さんの言い分（一人称）",
+                    "sunao_claim": "本音くんの言い分",
+                    "social_claim": "義務さんの言い分",
                     "deep_analysis": "ギャップと誠実さの分析",
-                    "lifestyle_report": "身体要因の分析",
-                    "lifestyle_advice": ["提案1", "提案2", "提案3"],
-                    "validation": "痛みと誠実さへの肯定",
+                    "lifestyle_advice": ["提案1", "提案2"],
+                    "light_translation": "「ささいな光」が持つ、今日をクリアした証としての意味",
                     "secure_msg": "安全基地からの言葉",
-                    "gap_importance": "このギャップ（痛み）が脳に与えるポジティブな影響"
+                    "daily_clear_label": "今日を生き延びた自分への二つ名（例：静かな開拓者、など）"
                 }}
                 """
                 res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -129,6 +141,32 @@ elif st.session_state.step == 2:
                 move_to(3)
             except Exception as e: st.error(f"解析エラー: {e}")
     if st.button("← 戻る"): move_to(1)
+
+# --- STEP 3: カンファレンス・レポート（光の通訳） ---
+elif st.session_state.step == 3:
+    scan = st.session_state.brain_scan
+    st.title("📋 Step 3: 今日の調律完了")
+    
+    st.success(f"### 今日のあなたは：『 {scan['daily_clear_label']} 』")
+    
+    with st.expander("🕯️ 今日の「光」の通訳"):
+        st.write(scan['light_translation'])
+        st.caption("※ささいな幸せに気づけたことは、あなたの脳が『安全』を必死に探して、一歩前に進もうとしている誠実さの証拠です。")
+
+    st.divider()
+    
+    col_out1, col_out2 = st.columns(2)
+    with col_out1: st.info(f"🟢 **本音（願望）**\n\n「{scan['sunao_claim']}」")
+    with col_out2: st.error(f"🔴 **義務（予定）**\n\n「{scan['social_claim']}」")
+    
+    st.subheader("🕵️ 調律師の視点")
+    st.markdown(scan['deep_analysis'])
+    
+    st.subheader("🏠 安全基地からのメッセージ")
+    st.write(scan['secure_msg'])
+    
+    if st.button("最初に戻る"): move_to(1)
+
 
 # --- STEP 3: カンファレンス・レポート (矛盾の肯定) ---
 elif st.session_state.step == 3:
@@ -164,3 +202,4 @@ elif st.session_state.step == 3:
     st.caption("※雨が降ってほしくないと思うことは自由です。その願いを抱えたまま、傘をさして一歩ずつ歩むあなたを、このシステムは全力で肯定します。")
     
     if st.button("最初に戻る"): move_to(1)
+
