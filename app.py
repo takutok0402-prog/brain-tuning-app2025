@@ -99,11 +99,11 @@ elif st.session_state.step == 2:
     with col_in3:
         st.markdown("### 🌟 今日の「ささいな光」")
         st.caption("記述することで「絶望の永続化」というバグを溶かします。")
-        st.session_state.small_lights = st.text_area("良かったこと、親切にされたこと", placeholder="例：駅で道を譲ってもらった。コーヒーが美味しかった。", height=100)
+        st.session_state.small_lights = st.text_area("良かったこと、親切にされたこと", placeholder="例：駅で道を譲ってもらった。コーヒーが美味しかった。いい天気だあ。", height=100)
     with col_in4:
         st.markdown("### ⚡ 今日の「モヤモヤ」")
         st.caption("自分の力では変えられない、イラッとしたこと。")
-        st.session_state.moyomoyo_input = st.text_area("変えられない外部の事象", placeholder="例：前の車が遅い。雨が降った。", height=100)
+        st.session_state.moyomoyo_input = st.text_area("変えられない外部の事象", placeholder="例：前の車が遅い。雨が降った。嫌なことしかなかった。", height=100)
 
     if st.button("調律プロセスを実行 ➔", type="primary"):
         with st.spinner("無意識の声を意識の部屋へエクスポート中..."):
@@ -179,3 +179,4 @@ elif st.session_state.step == 3:
             st.write(f"✅ {advice}")
     
     if st.button("最初に戻る"): move_to(1)
+
