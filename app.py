@@ -7,29 +7,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import rcParams
 
-# --- 0. 環境対策 (Python 3.13 / Render対応) ---
+# --- 0. 環境対策 ---
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = ['Hiragino Maru Gothic Pro', 'Yu Gothic', 'Meiryo', 'IPAexGothic', 'DejaVu Sans']
 
 # --- 1. システム設定 ---
 st.set_page_config(page_title="SUNAO | Internal Conference", page_icon="🧘", layout="centered")
 
-# API設定
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
-    # 小池さん指定の 2.5 Flash 駆動（環境に応じて調整可能）
     model_id = 'gemini-2.5-flash' 
 else:
     st.error("APIキーが設定されていません。")
 
 # セッション状態の初期化
-keys = [
-    'step', 'brain_scan', 'selected_emotion', 'social_filter_val', 
-    'fatigue_val', 'hunger_val', 'digital_val', 'safebase_val', 
-    'sleep_val', 'meal_input', 'activity_input',
-    'sunao_input', 'social_input'
-]
+keys = ['step', 'brain_scan', 'selected_emotion', 'social_filter_val', 'fatigue_val', 'hunger_val', 
+        'digital_val', 'safebase_val', 'sleep_val', 'meal_input', 'activity_input', 'sunao_input', 'social_input']
 for key in keys:
     if key not in st.session_state:
         st.session_state[key] = 1 if key == 'step' else "" if 'input' in key else None
@@ -43,12 +37,11 @@ def get_context():
     is_night = 21 <= now_hour or now_hour <= 6
     return "夜間（前頭前野のブレーキが弱まり、扁桃体が過敏な時間）" if is_night else "日中"
 
-# --- STEP 2: コンディション・スキャン ---
+# --- STEP 1: コンディション・スキャン (小池さん指定の構成を維持) ---
 if st.session_state.step == 1:
     st.title("🌈 Step 1: 現在のステータス")
     st.markdown("身体のコンディションを教えてください")
     
-    # 🔋 ハードウェア（身体・生活習慣）
     st.subheader("🔋 ハードウェア・ステータス")
     v_col1, v_col2 = st.columns(2)
     with v_col1:
@@ -62,7 +55,6 @@ if st.session_state.step == 1:
 
     st.divider()
     
-    # 心理的リソース
     st.subheader("🛡️ 心理的リソース")
     p_col1, p_col2 = st.columns(2)
     with p_col1:
@@ -76,10 +68,8 @@ if st.session_state.step == 1:
         pleasant_opts = ["つらい", "少し嫌", "普通", "良い", "最高"]
         pleasant = st.select_slider("🍃 快・不快", options=pleasant_opts, value="普通")
 
-    # 象限判定
     e_idx, p_idx = energy_opts.index(energy) - 2, pleasant_opts.index(pleasant) - 2
     quad = "Red" if e_idx >= 0 and p_idx < 0 else "Yellow" if e_idx >= 0 and p_idx >= 0 else "Blue" if e_idx < 0 and p_idx < 0 else "Green"
-    
     EM_DB = {
         "Red": ["嫌な事を考え続けてしまう", "不安", "心臓がバクバクする", "落ち着かない", "モヤモヤしている"],
         "Yellow": ["集中できている", "ワクワク", "自信がある", "挑戦したい"],
@@ -91,104 +81,86 @@ if st.session_state.step == 1:
     if st.session_state.selected_emotion != "(選択してください)":
         if st.button("2.5 Flash でデバッグを開始 ➔", type="primary"): move_to(2)
 
+# --- STEP 2: 二つの声の書き出し (願望 vs 予定/義務) ---
 elif st.session_state.step == 2:
     st.title("🔍 Step 2: 脳内ログの書き出し")
-    st.markdown("無理にまとめなくていい。二人の言い分を別々に吐き出して。")
+    st.markdown("矛盾を解決しようとしなくて大丈夫。二人の言い分を別々に吐き出して。")
 
     col_in1, col_in2 = st.columns(2)
     with col_in1:
-        st.markdown("### 🟢 本音くんの声")
-        # 小池さんこだわりの注釈を追加
-        st.info("💡 **ここがポイント**\n\n言いづらい、言葉にしづらいと感じることこそが、あなたの深層にある大切な『本音』である場合が多いです。スラスラ出てこなくても、断片的な言葉だけでも大丈夫。")
-        st.session_state.sunao_input = st.text_area(
-            "「本当はどうしたい？」", 
-            placeholder="（例：まだ好きだ。思い出に浸りたい。本当はやりたくない。）", 
-            height=250
-        )
-        
+        st.markdown("### 🟢 本音くん（願望）")
+        st.info("💡 **ここがポイント**\n\n言いづらい、言葉にしづらいことこそ、大切な『本音』です。スラスラ出てこなくても大丈夫。「〜したい」「戻りたい」という純粋な**願望**をここに置いてください。")
+        st.session_state.sunao_input = st.text_area("「本当はどうしたい？」", placeholder="例：あの頃に戻りたい。やりたくない。", height=250)
     with col_in2:
-        st.markdown("### 🔴 義務さんの声")
-        st.caption("※社会性フィルターを通した『〜すべき』『〜しなきゃ』という声。")
-        st.session_state.social_input = st.text_area(
-            "「〜しなきゃ、〜すべき」", 
-            placeholder="（例：前を向かなきゃ。期待に応えなきゃ。成果を出さなきゃ。）", 
-            height=250
-        )
-
-    st.divider()
-
+        st.markdown("### 🔴 義務さん（予定・現実）")
+        st.caption("※「〜しなきゃ」「今はこうだ」という現実的な行動の指針や、社会的な声。")
+        st.session_state.social_input = st.text_area("「〜しなきゃ、現実はこうだ」", placeholder="例：前を向かなきゃ。自分がやらないといけない。", height=250)
+    
     if st.button("調律プロセスを実行 ➔", type="primary"):
         with st.spinner("無意識の声を意識の部屋へエクスポート中..."):
             try:
                 model = genai.GenerativeModel(model_id)
-                # 小池さんの核心「言いづらさ＝本音」をプロンプトに反映
                 prompt = f"""
                 【解析対象】
-                - ログ: 素直={st.session_state.sunao_input}, 義務={st.session_state.social_input}
-                - 生活習慣: 睡眠={st.session_state.sleep_val}, 食事={st.session_state.meal_input}, 活動={st.session_state.activity_input}
-                - コンディション: {get_context()}, 疲労={st.session_state.fatigue_val}, デジタル={st.session_state.digital_val}, 安全基地={st.session_state.safebase_val}
+                - 願望（本音）: {st.session_state.sunao_input}
+                - 現実/義務（予定）: {st.session_state.social_input}
+                - コンディション: 疲労={st.session_state.fatigue_val}, 安全基地={st.session_state.safebase_val}
 
                 【2.5 Flash 調律ガイド】
-                1. 二つの声を「共存」させるためのカンファレンス・ログを作成してください。
-                2. 特に「本音（素直）」が言葉少なであったり、抽象的であったりする場合、それが強力な「抑圧」を受けている証拠だと捉え、その背後にある切実な想いを優しく言語化してください。
-                3. 無意識から意識の部屋（玄関）へ引き出す通訳の役割を果たします。
-                4. 無理に仲直りさせず、不協和（不快感）そのものを「誠実さの証」として肯定してください。
-                5. 生活習慣が脳に与えている影響を分析し、具体的な処方箋を3つ出してください。
+                1. 「願望」と「予定」が矛盾していることを、脳の不協和（バグ）ではなく「誠実さの証」として定義してください。
+                2. 「雨が降ってほしくない（願望）」けれど「降っている（現実）」という比喩を用い、感情を否定せずに現実を受け入れるプロセスを支援。
+                3. 本音くんと義務さん、それぞれの主張の背後にある「切実な理由」を言語化し、無意識から意識の部屋へ引き出します。
+                4. 二つの声の間にある「ギャップ（...）」こそが、脳が新しい現実を学習している最重要プロセスであることを伝えてください。
 
                 【JSON構造】
                 {{
                     "sunao_claim": "本音くんの言い分（一人称）",
                     "social_claim": "義務さんの言い分（一人称）",
-                    "deep_analysis": "葛藤の深層分析",
-                    "lifestyle_report": "今の身体コンディションが脳に与えている影響",
-                    "lifestyle_advice": ["具体的提案1", "具体的提案2", "具体的提案3"],
-                    "validation": "誠実さの肯定",
+                    "deep_analysis": "ギャップと誠実さの分析",
+                    "lifestyle_report": "身体要因の分析",
+                    "lifestyle_advice": ["提案1", "提案2", "提案3"],
+                    "validation": "痛みと誠実さへの肯定",
                     "secure_msg": "安全基地からの言葉",
-                    "sunao_pct": 0-100,
-                    "social_pct": 0-100
+                    "gap_importance": "このギャップ（痛み）が脳に与えるポジティブな影響"
                 }}
                 """
                 res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
                 st.session_state.brain_scan = json.loads(res.text)
                 move_to(3)
-            except Exception as e: 
-                st.error(f"解析エラー: {e}")
-                st.info("AIとの接続に失敗しました。少し時間を置いてから再度お試しください。")
+            except Exception as e: st.error(f"解析エラー: {e}")
+    if st.button("← 戻る"): move_to(1)
 
-    if st.button("← 戻る"): 
-        move_to(1)
-
-# --- STEP 3: カンファレンス・レポート ---
+# --- STEP 3: カンファレンス・レポート (矛盾の肯定) ---
 elif st.session_state.step == 3:
     scan = st.session_state.brain_scan
     st.title("📋 Step 3: 脳内カンファレンス・ログ")
     
-    # ⚖️ バランスの可視化
-    s_p, so_p = scan['sunao_pct'], scan['social_pct']
-    fig, ax = plt.subplots(figsize=(8, 4))
-    ax.add_patch(plt.Circle((0.3, 0.5), np.sqrt(s_p)/25 + 0.1, color='#4CAF50', alpha=0.6))
-    ax.add_patch(plt.Circle((0.7, 0.5), np.sqrt(so_p)/25 + 0.1, color='#FF5252', alpha=0.6))
-    ax.text(0.3, 0.5, f"本音(素直)\n{s_p}%\n『本音くん』", ha='center', va='center', fontweight='bold')
-    ax.text(0.7, 0.5, f"義務(社会性)\n{so_p}%\n『義務さん』", ha='center', va='center', fontweight='bold')
-    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.axis('off'); st.pyplot(fig)
-    
-    # 🗣️ 二つの声の並置
     col_out1, col_out2 = st.columns(2)
     with col_out1:
-        st.success(f"**🟢 本音くん**\n\n「{scan['sunao_claim']}」")
+        st.success(f"**🟢 本音くん（願望）**\n\n「{scan['sunao_claim']}」")
     with col_out2:
-        st.error(f"**🔴 義務さん**\n\n「{scan['social_claim']}」")
+        st.error(f"**🔴 義務さん（予定・現実）**\n\n「{scan['social_claim']}」")
     
     st.divider()
-    st.info(f"🧠 **調律師の深層解析**\n{scan['deep_analysis']}")
     
-    st.subheader("🥗 ハードウェア・メンテナンス（生活習慣改善）")
-    st.warning(scan['lifestyle_report'])
-    for advice in scan['lifestyle_advice']:
-        st.write(f"✅ {advice}")
+    # 🕵️ 調律師の視点
+    st.subheader("🕵️ 調律師の視点（意識の部屋）")
+    st.info(scan['deep_analysis'])
     
-    st.subheader("💎 あなたの誠実さへの証言")
+    # ギャップの肯定
+    with st.container():
+        st.markdown("#### 💎 ギャップは誠実さの証")
+        st.write(scan['gap_importance'])
+
+    with st.expander("⚙️ ハードウェア・メンテナンス"):
+        st.warning(scan['lifestyle_report'])
+        for advice in scan['lifestyle_advice']:
+            st.write(f"✅ {advice}")
+    
+    st.subheader("🕊️ 安全基地からのメッセージ")
+    st.markdown(f"### {scan['secure_msg']}")
     st.write(scan['validation'])
-    st.markdown(f"#### 🕊️ {scan['secure_msg']}")
+    
+    st.caption("※雨が降ってほしくないと思うことは自由です。その願いを抱えたまま、傘をさして一歩ずつ歩むあなたを、このシステムは全力で肯定します。")
     
     if st.button("最初に戻る"): move_to(1)
