@@ -83,7 +83,7 @@ elif st.session_state.step == 2:
     col_in1, col_in2 = st.columns(2)
     with col_in1:
         st.markdown("### 🟢 本音くん（願望）")
-        st.caption("「〜したい」「戻りたい」という純粋な願い。")
+        st.caption("「〜したい」「こうしたかった」という純粋な願い。")
         st.session_state.sunao_input = st.text_area("本当はどうしたい？", placeholder="言いづらいことこそ、大切な本音です。", height=200, key="sunao_t")
     with col_in2:
         st.markdown("### 🔴 義務さん（予定・現実）")
@@ -203,3 +203,4 @@ elif st.session_state.step == 3:
             st.markdown(f"**【触覚：重力との調和】**\n\n{s_tuning.get('touch')}")
 
     if st.button("最初に戻る"): move_to(1)
+
