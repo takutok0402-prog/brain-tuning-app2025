@@ -50,40 +50,55 @@ if st.session_state.step == 1:
 
     if st.button("Step 2 へ進む ➔", type="primary"): move_to(2)
 
-# --- STEP 2: 脳内ログ ---
+# --- STEP 2: 脳内ログ & 今日の光 ---
 elif st.session_state.step == 2:
     st.title("🔍 Step 2: 軸の成分と光の記録")
-    st.info("✨ **空欄があっても大丈夫です。**\n言葉にならない時は、そのまま次へ進んでください。")
+    
+    # ここに「空欄OK」のメッセージを追加
+    st.info("✨ **空欄があっても大丈夫です。**\n言葉にならない時は、そのまま次へ進んでください。AIがあなたの『身体の快』を呼び戻す提案をします。")
     
     col_in1, col_in2 = st.columns(2)
     with col_in1:
         st.markdown("### 🔵 自分軸 (Self-Axis)")
-        st.session_state.sunao_input = st.text_area("今の本音・理想（空欄OK）", height=200, key="sunao_t")
+        st.caption("自分に必要だと思うこと、理想、成長したいところ。")
+        st.session_state.sunao_input = st.text_area("今の本音・理想（空欄OK）", height=200, key="sunao_t", placeholder="例：三段跳の接地を極めたい、エサレンで学びたい、あるいは今は何も浮かばない...")
     with col_in2:
         st.markdown("### 🟠 外部軸 (External-Axis)")
-        st.session_state.social_input = st.text_area("外部からの声・期待（空欄OK）", height=200, key="social_t")
+        st.caption("素直に他人に期待すること、義務、責任、プレッシャー。")
+        st.session_state.social_input = st.text_area("外部からの声・期待（空欄OK）", height=200, key="social_t", placeholder="例：元カノに振り向いてほしい、レポートを終わらせなきゃ...")
 
-    st.session_state.small_lights = st.text_input("🕯️ 今日の「ささいな光」（空欄OK）")
+    st.divider()
+    st.subheader("🕯️ 今日の「ささいな光」")
+    st.caption("今日感じた小さな心地よさ。見つからなければ『なし』でも構いません。")
+    st.session_state.small_lights = st.text_input("例：コーヒーの香り、接地の感触", placeholder="（空欄でもAIがフォローします）")
 
     if st.button("AIによる全統合デバッグを実行 ➔", type="primary"):
-        with st.spinner("解析中..."):
+        with st.spinner("機体・精神・光のデータを解析中..."):
             try:
                 model = genai.GenerativeModel(model_id)
                 prompt = f"""
                 あなたは身体性レジリエンスの専門家です。
-                JSON形式で回答してください。
                 
                 【データ】
-                自分軸: {st.session_state.sunao_input} / 外部軸: {st.session_state.social_input} / 光: {st.session_state.small_lights}
-                
+                - 睡眠/疲労/空腹: {st.session_state.sleep_val}/{st.session_state.fatigue_val}/{st.session_state.hunger_val}
+                - 自分軸: {st.session_state.sunao_input}
+                - 外部軸: {st.session_state.social_input}
+                - 光: {st.session_state.small_lights}
+
+                【ミッション】
+                1. 判定: 入力された熱量から比率(自分:外部)を算出。
+                2. 空欄への対応: 自分軸が空欄なら、脳を休ませ五感(音楽・映画等)を動かす「自分を喜ばせる案」を提案。
+                3. 外部の尊重: 外部軸(期待や義務)を、高く跳ぶための「踏切板」としてポジティブに通訳。
+                4. 称号: 「自分に集中してる自分かっけー」と思える称号を付与。
+
                 【JSON構造】
                 {{
                     "judged_self_ratio": 70, 
-                    "ratio_analysis": "判定理由（ここを比率のデバッグとして表示します）",
+                    "ratio_logic": "判定理由",
                     "axis_action": "自分軸をブースト、または見つけるための提案",
                     "respect_external": "30%の外部軸のポジティブな意味",
-                    "daily_title": "称号",
-                    "somatic_work": "身体ワーク"
+                    "daily_title": "今日を生きるあなたの称号",
+                    "somatic_work": "1分間の身体ワーク"
                 }}
                 """
                 res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -116,3 +131,4 @@ elif st.session_state.step == 3:
     st.write(f"🛠️ **身体スイッチ:** {scan.get('somatic_work', '深呼吸をしましょう。')}")
 
     if st.button("最初に戻る"): move_to(1)
+
