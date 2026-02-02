@@ -4,44 +4,42 @@ import os
 import json
 import datetime
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib import rcParams
 
-# --- 0. 環境対策 ---
+# --- 0. 環境設定 ---
 rcParams['font.family'] = 'sans-serif'
 rcParams['font.sans-serif'] = ['Hiragino Maru Gothic Pro', 'Yu Gothic', 'Meiryo', 'IPAexGothic', 'DejaVu Sans']
 
 # --- 1. システム設定 ---
-st.set_page_config(page_title="SUNAO | Internal Conference", page_icon="🧘", layout="centered")
+st.set_page_config(page_title="SUNAO | Somatic Tuner", page_icon="🧘", layout="centered")
 
-# モデルID設定（Gemini 2.0 Flash推奨）
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
-    model_id = 'gemini-2.5-flash' # 最新の爆速モデル
+    model_id = 'gemini-2.5-flash'
 else:
     st.error("APIキーが設定されていません。")
 
 # セッション状態の初期化
 keys = [
     'step', 'brain_scan', 'selected_emotion', 'social_filter_val', 'fatigue_val', 
-    'hunger_val', 'digital_val', 'safebase_val', 'sleep_val', 'meal_input', 
-    'activity_input', 'sunao_input', 'social_input', 'small_lights', 'moyomoyo_input'
+    'hunger_val', 'digital_val', 'safebase_val', 'sleep_val', 'self_axis_ratio',
+    'sunao_input', 'social_input', 'small_lights', 'moyomoyo_input'
 ]
 for key in keys:
     if key not in st.session_state:
-        st.session_state[key] = 1 if key == 'step' else "" if 'input' in key or 'small' in key else None
+        st.session_state[key] = 1 if key == 'step' else 70 if key == 'self_axis_ratio' else ""
 
 def move_to(step):
     st.session_state.step = step
     st.rerun()
 
-# --- STEP 1: コンディション・スキャン ---
+# --- STEP 1: ハードウェア・ステータス（省略なし） ---
 if st.session_state.step == 1:
-    st.title("🌈 Step 1: 現在のステータス")
-    st.markdown("今の自分という『身体』の状態を確認します。")
+    st.title("🌈 Step 1: 機体ステータス・スキャン")
+    st.markdown("今の自分という『ハードウェア』の状態を確認します。")
     
-    st.subheader("🔋 ハードウェア・ステータス")
+    st.subheader("🔋 基本コンディション")
     v_col1, v_col2 = st.columns(2)
     with v_col1:
         st.session_state.sleep_val = st.select_slider("😴 昨夜の睡眠", options=["寝てない", "少しだけ", "そこそこ", "ぐっすり"], value="そこそこ")
@@ -51,8 +49,7 @@ if st.session_state.step == 1:
         st.session_state.hunger_val = st.select_slider("🍕 お腹の空き具合", options=["満腹", "普通", "ちょいペコ", "ペコペコ"], value="普通")
 
     st.divider()
-    
-    st.subheader("🛡️ 心理的リソース")
+    st.subheader("🛡️ 心理的ベースライン")
     p_col1, p_col2 = st.columns(2)
     with p_col1:
         st.session_state.safebase_val = st.radio("🏠 今、居る場所は落ち着く？", ["安心できる", "少し揺らいでいる", "孤立・戦闘態勢"], index=0)
@@ -63,79 +60,60 @@ if st.session_state.step == 1:
         pleasant_opts = ["つらい", "少し嫌", "普通", "良い", "最高"]
         pleasant = st.select_slider("🍃 快・不快", options=pleasant_opts, value="普通")
 
-    e_idx, p_idx = energy_opts.index(energy) - 2, pleasant_opts.index(pleasant) - 2
-    quad = "Red" if e_idx >= 0 and p_idx < 0 else "Yellow" if e_idx >= 0 and p_idx >= 0 else "Blue" if e_idx < 0 and p_idx < 0 else "Green"
-    EM_DB = {
-        "Red": ["不安", "心臓がバクバクする", "落ち着かない", "モヤモヤ"],
-        "Yellow": ["集中", "ワクワク", "自信", "挑戦"],
-        "Blue": ["自分なんてダメだ", "布団から出られない", "消えてしまいたい"],
-        "Green": ["ほっとしている", "穏やか", "今のままでいい"]
-    }
-    st.session_state.selected_emotion = st.selectbox(f"今の感覚に近いラベル（{quad}エリア）", ["(選択してください)"] + EM_DB[quad])
+    if st.button("Step 2 へ進む ➔", type="primary"): move_to(2)
 
-    if st.session_state.selected_emotion != "(選択してください)":
-        if st.button("Step 2 へ進む ➔", type="primary"): move_to(2)
-
-# --- STEP 2: 脳内ログ ---
+# --- STEP 2: 70:30 デバッグ・ログ（定義アップデート版） ---
 elif st.session_state.step == 2:
-    st.title("🔍 Step 2: 脳内ログの書き出し")
+    st.title("🔍 Step 2: 70:30 比率の調律")
+    st.markdown("「自分に集中している自分、かっけー」の比率をデバッグします。")
+    
+    st.session_state.self_axis_ratio = st.slider("⚖️ 現在の自分軸の割合 (%)", 0, 100, 70)
     
     col_in1, col_in2 = st.columns(2)
     with col_in1:
-        st.markdown("### 🟢 本音くん（願望）")
-        st.caption("「〜したい」「こうしたかった」という純粋な願い。")
-        st.session_state.sunao_input = st.text_area("本当はどうしたい？", placeholder="言いづらいことこそ、大切な本音です。", height=200, key="sunao_t")
+        st.markdown("### 🔵 自分軸 70%")
+        st.caption("自分に必要だと思うこと、理想、成長したいこと。")
+        st.session_state.sunao_input = st.text_area("今の本音・理想を教えて（空欄でもOK）", height=200, key="sunao_t")
     with col_in2:
-        st.markdown("### 🔴 義務さん（予定・現実）")
-        st.caption("「〜すべき」「現実はこうだ」という声。")
-        st.session_state.social_input = st.text_area("〜しなきゃ、現実はこうだ", placeholder="社会的な責任や、予測される苦労。", height=200, key="social_t")
+        st.markdown("### 🟠 外部軸 30%")
+        st.caption("他人に期待すること、義務感、責任感、プレッシャー。")
+        st.session_state.social_input = st.text_area("押し込めておきたい期待や義務は？", height=200, key="social_t")
 
     st.divider()
-
-    col_in3, col_in4 = st.columns(2)
-    with col_in3:
-        st.markdown("### 🌟 今日の「ささいな光」")
-        st.session_state.small_lights = st.text_area("良かったこと、味わったこと", placeholder="例：コーヒーが熱くて美味しかった。いい天気だあ。", height=100)
-    with col_in4:
-        st.markdown("### ⚡ 今日の「モヤモヤ」")
-        st.session_state.moyomoyo_input = st.text_area("変えられない外部のノイズ", placeholder="例：前の車が遅い。誰かの言葉がトゲに感じた。", height=100)
+    st.session_state.small_lights = st.text_input("🕯️ 今日の「ささいな光」")
 
     if st.button("調律プロセスを実行 ➔", type="primary"):
-        with st.spinner("身体のセンサーを再起動中..."):
+        with st.spinner("身体と脳の不整合をデバッグ中..."):
             try:
                 model = genai.GenerativeModel(model_id)
+                # 入力の有無によってモードを切り替えるプロンプト
                 prompt = f"""
-                【解析対象】
-                - 願望: {st.session_state.sunao_input}
-                - 現実: {st.session_state.social_input}
-                - 光: {st.session_state.small_lights}
-                - モヤモヤ: {st.session_state.moyomoyo_input}
-                - 状態: 疲労={st.session_state.fatigue_val}, 睡眠={st.session_state.sleep_val}
+                【ユーザー状態】
+                - 睡眠: {st.session_state.sleep_val}, 疲労: {st.session_state.fatigue_val}, 空腹: {st.session_state.hunger_val}
+                - 自分軸(70%側 / 理想・成長): {st.session_state.sunao_input}
+                - 外部軸(30%側 / 他人への期待・義務): {st.session_state.social_input}
+                
+                【解析・調律ミッション】
+                1. 自分軸が「空欄」の場合:
+                   - 脳が疲弊し、軸を見失っている状態と判断。
+                   - 音楽、映画、食事など、五感を刺激して「身体の快」を取り戻すための具体的な案を3つ提案してください。
+                
+                2. 自分軸が「入力あり」の場合:
+                   - その「理想」や「成長」を、意識の70%までブーストし、外部のノイズを30%以下に抑え込むための「全盛期マインドセット」を提案してください。
 
-                【調律・解析ガイドライン】
-                1. ユーザーの矛盾（本音と義務）を「誠実さの証」として深く分析してください。
-                2. 「ささいな光」を、脳が安全を学習するための反証データとして通訳してください。
-                3. 各感覚に対し、1〜3分かけて脳のフィルターを外す「本能回帰ワーク」を、入力内容に基づき柔軟に生成してください。
-                4. 聴覚（hearing）ワークについては、没入を助けるYouTube動画（自然音・環境音）のURLを1つ提案してください。
+                3. 共通:
+                   - 外部期待を30%フォルダに隔離するアドバイス。
+                   - エサレン流の身体スイッチ(1分)を提示。
 
                 【JSON構造】
                 {{
-                    "sunao_claim": "本音の言い分",
-                    "social_claim": "義務の言い分",
-                    "deep_analysis": "矛盾と誠実さの深層分析（Markdown形式で200字程度）",
-                    "light_translation": "光の意味の通訳",
-                    "gentle_narratives": ["物語1", "物語2", "物語3"],
-                    "secure_msg": "安全基地からの言葉",
-                    "daily_clear_label": "今日を生き延びた自分への称号",
-                    "lifestyle_report": "身体が脳に与えている影響の報告",
-                    "lifestyle_advice": ["具体的な提案1", "提案2"],
-                    "sensory_tuning": {{
-                        "vision": "1-3分の視覚ワーク",
-                        "hearing": "1-3分の聴覚ワーク",
-                        "hearing_youtube_url": "https://www.youtube.com/watch?v=...",
-                        "taste": "1-3分の味覚ワーク",
-                        "smell": "1-3分の嗅覚ワーク",
-                        "touch": "1-3分の触覚ワーク"
+                    "mode_status": "現在のモード（軸探索 or 軸ブースト）",
+                    "axis_action": "具体的な行動提案（自分軸を70%にする、または見つけるためのアクション）",
+                    "folder_technique": "30%フォルダへの隔離術",
+                    "daily_title": "今日を生きるアスリートとしての称号",
+                    "somatic_work": {{
+                        "action": "1分間の身体ワーク内容",
+                        "hearing_url": "https://www.youtube.com/watch?v=..."
                     }}
                 }}
                 """
@@ -143,64 +121,29 @@ elif st.session_state.step == 2:
                 st.session_state.brain_scan = json.loads(res.text)
                 move_to(3)
             except Exception as e: st.error(f"解析エラー: {e}")
-    if st.button("← 戻る"): move_to(1)
 
-# --- STEP 3: レポート ---
+# --- STEP 3: レポート（省略なし） ---
 elif st.session_state.step == 3:
     scan = st.session_state.brain_scan
-    st.title("📋 Step 3: 今日の調律完了")
-    st.success(f"### 今日のあなたは：『 {scan['daily_clear_label']} 』")
-    st.info(f"**🏠 安全基地より:** {scan['secure_msg']}")
-
-    st.divider()
-
-    # 1. 光とモヤモヤの処理
-    with st.expander("🕯️ 今日の「光」の通訳"):
-        st.write(scan['light_translation'])
+    st.title("📋 Step 3: 調律完了")
+    st.success(f"### 称号：『 {scan['daily_title']} 』")
     
-    with st.expander("🕵️ 「モヤモヤ」を書き換える物語"):
-        for story in scan['gentle_narratives']:
-            st.write(f"💡 {story}")
+    # 比率グラフ
+    fig, ax = plt.subplots(figsize=(6, 1.2))
+    r = st.session_state.self_axis_ratio
+    ax.barh(["Axis"], [r], color="#3498db")
+    ax.barh(["Axis"], [100-r], left=[r], color="#e67e22")
+    ax.set_xlim(0, 100)
+    ax.axis('off')
+    st.pyplot(fig)
+    st.caption(f"🔵 自分軸: {r}% (理想) / 🟠 外部軸: {100-r}% (他者期待・義務)")
 
     st.divider()
-
-    # 2. 本音と義務の対置
-    col_out1, col_out2 = st.columns(2)
-    with col_out1: st.info(f"🟢 **本音（願望）**\n\n「{scan['sunao_claim']}」")
-    with col_out2: st.error(f"🔴 **義務（予定）**\n\n「{scan['social_claim']}」")
+    st.info(f"🚀 **{scan['mode_status']}:**\n{scan['axis_action']}")
+    st.warning(f"📁 **30%フォルダ隔離術:** {scan['folder_technique']}")
     
-    # 3. 葛藤の深層分析（ユーザーのこだわり）
-    st.markdown("#### 💎 葛藤の深層分析")
-    st.write(scan['deep_analysis'])
-
-    st.divider()
-
-    # 4. ハードウェア・メンテナンス & 五感再起動
-    with st.expander("⚙️ ハードウェア・メンテナンス", expanded=True):
-        st.warning(scan['lifestyle_report'])
-        for advice in scan['lifestyle_advice']:
-            st.write(f"✅ {advice}")
-        
-        st.write("---")
-        st.subheader("👂 五感をとりもどす (1〜3分没入)")
-        st.caption("理性の暴走を止め、本能のセンサーにすべてを委ねるワークです。")
-        
-        t_vis, t_hea, t_tas, t_sme, t_tou = st.tabs(["視覚", "聴覚", "味覚", "嗅覚", "触覚"])
-        s_tuning = scan.get('sensory_tuning', {})
-        
-        with t_vis:
-            st.markdown(f"**【視覚：光と輪郭の受容】**\n\n{s_tuning.get('vision')}")
-        with t_hea:
-            st.markdown(f"**【聴覚：音のレイヤーに溶ける】**\n\n{s_tuning.get('hearing')}")
-            yt_url = s_tuning.get('hearing_youtube_url', "")
-            if yt_url.startswith("http"):
-                st.video(yt_url)
-        with t_tas:
-            st.markdown(f"**【味覚：生命の報酬】**\n\n{s_tuning.get('taste')}")
-        with t_sme:
-            st.markdown(f"**【嗅覚：本能の対話】**\n\n{s_tuning.get('smell')}")
-        with t_tou:
-            st.markdown(f"**【触覚：重力との調和】**\n\n{s_tuning.get('touch')}")
+    st.subheader("🛠️ 五感を起動する身体スイッチ")
+    st.success(scan['somatic_work']['action'])
+    if scan['somatic_work'].get('hearing_url'): st.video(scan['somatic_work']['hearing_url'])
 
     if st.button("最初に戻る"): move_to(1)
-
