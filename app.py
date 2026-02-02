@@ -73,32 +73,41 @@ elif st.session_state.step == 2:
     st.session_state.small_lights = st.text_input("例：コーヒーの香り、空の眺めの良さ", placeholder="（空欄でもAIがフォローします）")
 
     if st.button("AIによる全統合デバッグを実行 ➔", type="primary"):
-        with st.spinner("機体・精神・光のデータを解析中..."):
+        with st.spinner("身体・軸・光のデータを解析中..."):
             try:
                 model = genai.GenerativeModel(model_id)
                 prompt = f"""
-                あなたは身体性レジリエンスの専門家です。
-                
-                【データ】
-                - 睡眠/疲労/空腹: {st.session_state.sleep_val}/{st.session_state.fatigue_val}/{st.session_state.hunger_val}
-                - 自分軸: {st.session_state.sunao_input}
-                - 外部軸: {st.session_state.social_input}
-                - 光: {st.session_state.small_lights}
+                あなたは人間心理と身体感覚のデバッガーです。
+                ユーザーの状態を「70:30（自分軸：外部軸）」の黄金比に調律してください。
 
-                【ミッション】
-                1. 判定: 入力された熱量から比率(自分:外部)を算出。
-                2. 空欄への対応: 自分軸が空欄なら、脳を休ませ五感(音楽・映画等)を動かす「自分を喜ばせる案」を提案。
-                3. 外部の尊重: 外部軸(期待や義務)を、高く跳ぶための「踏切板」としてポジティブに通訳。
-                4. 称号: 「自分に集中してる自分かっけー」と思える称号を付与。
+                【解析対象データ】
+                1. 身体コンディション: 睡眠={st.session_state.sleep_val}, 疲労={st.session_state.fatigue_val}, 空腹={st.session_state.hunger_val}
+                2. 自分軸（70%側: 理想・必要・成長）: {st.session_state.sunao_input}
+                3. 外部軸（30%側: 期待・義務・責任・圧）: {st.session_state.social_input}
+                4. 内在データ（光）: {st.session_state.small_lights}
+
+                【調律（チューニング）ロジック】
+                1. 比率判定（State Analysis）:
+                   入力の具体性と機体疲労をクロス解析し、現在の「自分軸：外部軸」の比率を客観的に判定せよ。
+
+                2. 外部軸(30%)の尊重（Structural Tension）:
+                   外部の期待や義務を排除すべきノイズではなく、自分という機体を支え、理想を現実へと繋ぎ止める「必要な鎮痛剤」「ブースト」として肯定的に定義せよ。その重みをどう活用すれば、自分軸がより鮮明になるかを説け。
+
+                3. 自分軸（70%）の最適化:
+                   - 【入力あり】: その理想を意識の70%まで引き上げ、外部の圧をエネルギーに変換するためのマインドセットを提示せよ。
+                   - 【入力なし】: 脳のオーバーロードと判断。五感（音楽・映画・食事など）を「感性の再起動データ」として、日常で即実行できる具体的な案を3つ提案せよ。
+
+                4. 称号（ID）:
+                   「自分に集中している状態」を肯定する、知的で洗練された称号を付与せよ。
 
                 【JSON構造】
                 {{
                     "judged_self_ratio": 70, 
-                    "ratio_logic": "判定理由",
-                    "axis_action": "自分軸をブースト、または見つけるための提案",
-                    "respect_external": "30%の外部軸のポジティブな意味",
-                    "daily_title": "今日を生きるあなたの称号",
-                    "somatic_work": "1分間の身体ワーク"
+                    "ratio_analysis": "現在の比率判定とその背景にある因果関係の解析",
+                    "axis_action": "自分軸を70%へ引き上げる、または再起動するための具体的アクション",
+                    "respect_external": "30%の外部要因が、今のあなたにとって持つポジティブな意味",
+                    "daily_title": "現在のシステム称号",
+                    "somatic_work": "1分間で身体感覚を今ここへ戻すワーク"
                 }}
                 """
                 res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -131,5 +140,6 @@ elif st.session_state.step == 3:
     st.write(f"🛠️ **身体スイッチ:** {scan.get('somatic_work', '深呼吸をしましょう。')}")
 
     if st.button("最初に戻る"): move_to(1)
+
 
 
