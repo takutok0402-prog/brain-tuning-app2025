@@ -61,16 +61,16 @@ elif st.session_state.step == 2:
     with col_in1:
         st.markdown("### 🔵 自分軸 (Self-Axis)")
         st.caption("自分に必要だと思うこと、理想、成長したいところ。")
-        st.session_state.sunao_input = st.text_area("今の本音・理想（空欄OK）", height=200, key="sunao_t", placeholder="例：三段跳の接地を極めたい、エサレンで学びたい、あるいは今は何も浮かばない...")
+        st.session_state.sunao_input = st.text_area("今の本音・理想（空欄OK）", height=200, key="sunao_t", placeholder="例：英語を習得したい...")
     with col_in2:
         st.markdown("### 🟠 外部軸 (External-Axis)")
         st.caption("素直に他人に期待すること、義務、責任、プレッシャー。")
-        st.session_state.social_input = st.text_area("外部からの声・期待（空欄OK）", height=200, key="social_t", placeholder="例：元カノに振り向いてほしい、レポートを終わらせなきゃ...")
+        st.session_state.social_input = st.text_area("外部からの声・期待（空欄OK）", height=200, key="social_t", placeholder="例：期待に応えなきゃ。なんか良いことないかな...")
 
     st.divider()
     st.subheader("🕯️ 今日の「ささいな光」")
     st.caption("今日感じた小さな心地よさ。見つからなければ『なし』でも構いません。")
-    st.session_state.small_lights = st.text_input("例：コーヒーの香り、接地の感触", placeholder="（空欄でもAIがフォローします）")
+    st.session_state.small_lights = st.text_input("例：コーヒーの香り、空の眺めの良さ", placeholder="（空欄でもAIがフォローします）")
 
     if st.button("AIによる全統合デバッグを実行 ➔", type="primary"):
         with st.spinner("機体・精神・光のデータを解析中..."):
@@ -131,4 +131,5 @@ elif st.session_state.step == 3:
     st.write(f"🛠️ **身体スイッチ:** {scan.get('somatic_work', '深呼吸をしましょう。')}")
 
     if st.button("最初に戻る"): move_to(1)
+
 
