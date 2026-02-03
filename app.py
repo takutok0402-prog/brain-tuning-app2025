@@ -12,10 +12,11 @@ rcParams['font.sans-serif'] = ['Hiragino Maru Gothic Pro', 'Yu Gothic', 'Meiryo'
 # --- 1. システム設定 ---
 st.set_page_config(page_title="SUNAO | Holistic Tuner", page_icon="🧘", layout="centered")
 
-# APIキーの設定（Renderなどの環境変数、またはStreamlit Secretsから取得）
+# APIキーの設定
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
+    # 最新モデルを指定（環境に合わせて調整してください）
     model_id = 'gemini-2.5-flash' 
 else:
     st.error("APIキーが設定されていません。")
@@ -62,76 +63,60 @@ elif st.session_state.step == 2:
     col_in1, col_in2 = st.columns(2)
     with col_in1:
         st.markdown("### 🔵 自分軸 (Self-Axis)")
-        st.caption("理想、やりたいこと、成長。")
-        st.session_state.sunao_input = st.text_area("今の本音（空欄OK）", height=150, key="sunao_t", placeholder="例：英語を習得したい。次の大会で勝ちたい。...")
+        st.caption("理想、やりたいこと、身体感覚。")
+        st.session_state.sunao_input = st.text_area("今の本音（空欄OK）", height=150, key="sunao_t", placeholder="例：英語をマスターしたい。筋トレして強くなりたい。")
     with col_in2:
         st.markdown("### 🟠 外部軸 (External-Axis)")
-        st.caption("義務、プレッシャー、他人の目、外部期待。")
-        st.session_state.social_input = st.text_area("外部の重み（空欄OK）", height=150, key="social_t", placeholder="例：誰かの視線、何かいいことないかな...")
+        st.caption("他人の目、未練、期待、不安。")
+        st.session_state.social_input = st.text_area("外部の重み（空欄OK）", height=150, key="social_t", placeholder="例：あの時こうしていれば。周りに褒められたい。")
 
     st.divider()
 
-    # --- 脳内占有率：11段階グラデーションスライダー ---
     st.subheader("🧠 外部軸の脳内占有率")
-    st.caption("その悩みや義務は、今脳内のどれくらいを占領してる？")
-    
     ext_percent = st.slider("占有率を選択 (10%刻み)", min_value=0, max_value=100, value=30, step=10, key="ext_p")
     st.session_state.external_occupancy = ext_percent
 
-    # 色の計算（青 #3498db (52,152,219) から 赤 #e74c3c (231,76,60) への補完）
+    # プログレスバーの表示
     r = int(52 + (231 - 52) * (ext_percent / 100))
     g = int(152 + (76 - 152) * (ext_percent / 100))
     b = int(219 + (60 - 219) * (ext_percent / 100))
     bar_color = f"rgb({r}, {g}, {b})"
 
-    # 動的なグラデーションバーとガイド
     st.markdown(f"""
         <div style="width: 100%; background-color: #eee; border-radius: 10px; overflow: hidden; height: 24px; border: 1px solid #ddd;">
             <div style="width: {ext_percent}%; background-color: {bar_color}; height: 100%; transition: width 0.4s ease-out;"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; color: #888;">
-            <span>最強の青 (0%)</span>
-            <span>黄金比 (30%)</span>
-            <span>警告の赤 (100%)</span>
-        </div>
         """, unsafe_allow_html=True)
     
-    if ext_percent >= 70: st.error(f"🚨 占有率 {ext_percent}%：オーバーヒート中。仕分けが必要です。")
-    elif ext_percent > 30: st.warning(f"⚠️ 占有率 {ext_percent}%：ノイズ混入。30%以下を目指しましょう。")
-    elif ext_percent == 30: st.success(f"⚖️ 占有率 {ext_percent}%：完璧な黄金比！理想的な状態です。")
-    else: st.info(f"💎 占有率 {ext_percent}%：超・自分軸モード。爆速で進めます。")
-
     st.session_state.small_lights = st.text_input("🕯️ 今日の「ささいな光」（空欄OK）")
 
     if st.button("AIによる全統合デバッグを実行 ➔", type="primary"):
         with st.spinner("心のノイズを冷却中..."):
             try:
                 model = genai.GenerativeModel(model_id)
+                # --- プロンプトに「仕分け」と「ターボ」の指示を追加 ---
                 prompt = f"""
-                あなたは、ユーザーの心と体に優しく寄り添うパートナーです。
-                今の状態を「自分軸（70%）」と「外部軸（30%）」のバランスに整えてください。
+                あなたは、ユーザーの心と体に寄り添い、全盛期を引き出すデバッガーです。
+                ユーザーの入力を「自分軸(70%)」と「外部軸(30%)」に再構成してください。
 
                 【データ】
-                1. 体調: 睡眠={st.session_state.sleep_val}, 疲れ={st.session_state.fatigue_val}
-                2. 自分軸: {st.session_state.sunao_input}
-                3. 外部軸: {st.session_state.social_input}
-                4. 脳内占有率(外部軸割合): {st.session_state.external_occupancy}%
-                5. 今日の光: {st.session_state.small_lights}
-
-                【アドバイス方針】
-                1. 占有率診断: {st.session_state.external_occupancy}%という数値を見て、どう『仕分け』すべきか優しく助言して。
-                2. 外部軸(30%): 義務や圧を、高く跳ぶための「追い風」や「反発力」として肯定的に捉え直して。
-                3. 自分軸(70%): 空欄なら、心をホッとさせる五感の過ごし方を3つ。
-                4. 称号: 温かくてかっこいい名前を付けて。
-
+                自分軸: {st.session_state.sunao_input}
+                外部軸: {st.session_state.social_input}
+                占有率: {st.session_state.external_occupancy}%
+                
+                【必須タスク】
+                1. 境界線デバッグ(仕分け): 入力内容を「自分の課題(70%)」と「他人の課題(30%)」に明確に分離して。
+                2. ターボチャージャー(変換): 外部軸にある不安や未練（排気）を、今日一歩進むための具体的な「ブースト行動（吸気）」に変換して。
+                
                 【JSON構造】
                 {{
-                    "judged_self_ratio": {100 - st.session_state.external_occupancy}, 
-                    "ratio_analysis": "占有率に基づいた心のバランス解説",
-                    "axis_action": "自分らしく過ごすためのアクション",
-                    "respect_external": "外部軸を味方にする考え方",
-                    "daily_title": "あなたに贈る称号",
-                    "somatic_work": "簡単なリラックス法"
+                    "daily_title": "称号",
+                    "judged_self_ratio": {100 - st.session_state.external_occupancy},
+                    "ratio_analysis": "現在のバランス解説",
+                    "my_tasks": ["自分の領土にある課題のリスト"],
+                    "others_tasks": ["他人の領土（手放すべき）課題のリスト"],
+                    "turbo_boost": "外部軸の熱を力に変える具体的な一歩",
+                    "somatic_work": "身体へのアプローチ"
                 }}
                 """
                 res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -139,7 +124,7 @@ elif st.session_state.step == 2:
                 move_to(3)
             except Exception as e: st.error(f"解析エラー: {e}")
 
-# --- STEP 3: レポート ---
+# --- STEP 3: レポート (仕分け & ターボ) ---
 elif st.session_state.step == 3:
     scan = st.session_state.brain_scan
     st.title("📋 Step 3: 調律完了")
@@ -157,9 +142,28 @@ elif st.session_state.step == 3:
     st.caption(f"🔵 自分軸: {r}% / 🟠 外部軸: {100-r}% (AI Tune)")
 
     st.divider()
-    st.info(f"⚖️ **心のデバッグ報告:**\n{scan.get('ratio_analysis', '...')}")
-    st.success(f"🚀 **自分軸(70%)を輝かせる:**\n{scan.get('axis_action', '...')}")
-    st.warning(f"🤝 **30%の外部軸を味方にする:**\n{scan.get('respect_external', '...')}")
+
+    # --- 機能1: 境界線デバッガー (仕分け) ---
+    st.subheader("⚖️ 境界線デバッガー（仕分け）")
+    st.markdown("「自分でコントロールできること」だけに集中しましょう。")
+    s_col1, s_col2 = st.columns(2)
+    with s_col1:
+        st.markdown("**🔵 自分の課題 (70%)**")
+        for task in scan.get('my_tasks', []):
+            st.write(f"- {task}")
+    with s_col2:
+        st.markdown("**🟠 他人の課題 (30%)**")
+        for task in scan.get('others_tasks', []):
+            st.write(f"- {task}")
+            
+    st.divider()
+
+    # --- 機能2: 30% ターボチャージャー (変換) ---
+    st.subheader("🚀 30% ターボチャージャー（変換）")
+    st.info(f"**【排気を吸気に変換完了】**\n外部への想いや不安を、今日のブーストに変えます。")
+    st.warning(f"🔥 **ブースト行動:** {scan.get('turbo_boost', '...')}")
+
+    st.divider()
     st.write(f"🛠️ **身体スイッチ:** {scan.get('somatic_work', '...')}")
 
     if st.button("最初に戻る"): move_to(1)
