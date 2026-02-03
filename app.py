@@ -12,13 +12,15 @@ rcParams['font.sans-serif'] = ['Hiragino Maru Gothic Pro', 'Yu Gothic', 'Meiryo'
 # --- 1. システム設定 ---
 st.set_page_config(page_title="SUNAO | Holistic Tuner", page_icon="🧘", layout="centered")
 
+# APIキーの設定（Renderなどの環境変数、またはStreamlit Secretsから取得）
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
-    model_id = 'gemini-2.5-flash'
+    model_id = 'gemini-2.5-flash' 
 else:
     st.error("APIキーが設定されていません。")
 
+# セッション状態の管理
 if 'step' not in st.session_state: st.session_state.step = 1
 if 'brain_scan' not in st.session_state: st.session_state.brain_scan = None
 
@@ -26,9 +28,11 @@ def move_to(step):
     st.session_state.step = step
     st.rerun()
 
-# --- STEP 1: 機体ステータス ---
+# --- STEP 1: 身体スキャン ---
 if st.session_state.step == 1:
     st.title("🌈 Step 1: 身体スキャン")
+    st.markdown("『今の自分』というコンディションを確認します。")
+    
     v_col1, v_col2 = st.columns(2)
     with v_col1:
         st.session_state.sleep_val = st.select_slider("😴 昨夜の睡眠", options=["寝てない", "少しだけ", "そこそこ", "ぐっすり"], value="そこそこ")
@@ -50,64 +54,84 @@ if st.session_state.step == 1:
 
     if st.button("Step 2 へ進む ➔", type="primary"): move_to(2)
 
-# --- STEP 2: 脳内ログ & 今日の光 ---
+# --- STEP 2: 脳内ログ & 占有率 ---
 elif st.session_state.step == 2:
-    st.title("🔍 Step 2: 軸の成分と光の記録")
-    
-    # ここに「空欄OK」のメッセージを追加
-    st.info("✨ **空欄があっても大丈夫です。**\n言葉にならない時は、そのまま次へ進んでください。AIがあなたの『身体の快』を呼び戻す提案をします。")
+    st.title("🔍 Step 2: 軸の成分と占有率")
+    st.info("✨ **空欄があっても大丈夫です。**\n言葉にならない時は、そのまま次へ進んでください。")
     
     col_in1, col_in2 = st.columns(2)
     with col_in1:
         st.markdown("### 🔵 自分軸 (Self-Axis)")
-        st.caption("自分に必要だと思うこと、理想、成長したいところ。")
-        st.session_state.sunao_input = st.text_area("今の本音・理想（空欄OK）", height=200, key="sunao_t", placeholder="例：英語を習得したい...")
+        st.caption("理想、やりたいこと、成長。")
+        st.session_state.sunao_input = st.text_area("今の本音（空欄OK）", height=150, key="sunao_t", placeholder="例：英語を習得したい。次の大会で勝ちたい。...")
     with col_in2:
         st.markdown("### 🟠 外部軸 (External-Axis)")
-        st.caption("素直に他人に期待すること、義務、責任、プレッシャー。")
-        st.session_state.social_input = st.text_area("外部からの声・期待（空欄OK）", height=200, key="social_t", placeholder="例：期待に応えなきゃ。なんか良いことないかな...")
+        st.caption("義務、プレッシャー、他人の目、外部期待。")
+        st.session_state.social_input = st.text_area("外部の重み（空欄OK）", height=150, key="social_t", placeholder="例：誰かの視線、何かいいことないかな...")
 
     st.divider()
-    st.subheader("🕯️ 今日の「ささいな光」")
-    st.caption("今日感じた小さな心地よさ。見つからなければ『なし』でも構いません。")
-    st.session_state.small_lights = st.text_input("例：コーヒーの香り、空の眺めの良さ", placeholder="（空欄でもAIがフォローします）")
+
+    # --- 脳内占有率：11段階グラデーションスライダー ---
+    st.subheader("🧠 外部軸の脳内占有率")
+    st.caption("その悩みや義務は、今脳内のどれくらいを占領してる？")
+    
+    ext_percent = st.slider("占有率を選択 (10%刻み)", min_value=0, max_value=100, value=30, step=10, key="ext_p")
+    st.session_state.external_occupancy = ext_percent
+
+    # 色の計算（青 #3498db (52,152,219) から 赤 #e74c3c (231,76,60) への補完）
+    r = int(52 + (231 - 52) * (ext_percent / 100))
+    g = int(152 + (76 - 152) * (ext_percent / 100))
+    b = int(219 + (60 - 219) * (ext_percent / 100))
+    bar_color = f"rgb({r}, {g}, {b})"
+
+    # 動的なグラデーションバーとガイド
+    st.markdown(f"""
+        <div style="width: 100%; background-color: #eee; border-radius: 10px; overflow: hidden; height: 24px; border: 1px solid #ddd;">
+            <div style="width: {ext_percent}%; background-color: {bar_color}; height: 100%; transition: width 0.4s ease-out;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; color: #888;">
+            <span>最強の青 (0%)</span>
+            <span>黄金比 (30%)</span>
+            <span>警告の赤 (100%)</span>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if ext_percent >= 70: st.error(f"🚨 占有率 {ext_percent}%：オーバーヒート中。仕分けが必要です。")
+    elif ext_percent > 30: st.warning(f"⚠️ 占有率 {ext_percent}%：ノイズ混入。30%以下を目指しましょう。")
+    elif ext_percent == 30: st.success(f"⚖️ 占有率 {ext_percent}%：完璧な黄金比！理想的な状態です。")
+    else: st.info(f"💎 占有率 {ext_percent}%：超・自分軸モード。爆速で進めます。")
+
+    st.session_state.small_lights = st.text_input("🕯️ 今日の「ささいな光」（空欄OK）")
 
     if st.button("AIによる全統合デバッグを実行 ➔", type="primary"):
-        with st.spinner("身体・軸・光のデータを解析中..."):
+        with st.spinner("心のノイズを冷却中..."):
             try:
                 model = genai.GenerativeModel(model_id)
                 prompt = f"""
                 あなたは、ユーザーの心と体に優しく寄り添うパートナーです。
-                今の状態を「自分軸（70%）」と「外部軸（30%）」の、心地よいバランスに整えるお手伝いをしてください。
+                今の状態を「自分軸（70%）」と「外部軸（30%）」のバランスに整えてください。
 
-                【教えてもらったデータ】
-                1. 今日の体調: 睡眠={st.session_state.sleep_val}, 疲れ={st.session_state.fatigue_val}, お腹の空き具合={st.session_state.hunger_val}
-                2. あなたが大切にしたいこと（自分軸）: {st.session_state.sunao_input}
-                3. 今抱えている期待や義務（外部軸）: {st.session_state.social_input}
-                4. 今日見つけた小さな光: {st.session_state.small_lights}
+                【データ】
+                1. 体調: 睡眠={st.session_state.sleep_val}, 疲れ={st.session_state.fatigue_val}
+                2. 自分軸: {st.session_state.sunao_input}
+                3. 外部軸: {st.session_state.social_input}
+                4. 脳内占有率(外部軸割合): {st.session_state.external_occupancy}%
+                5. 今日の光: {st.session_state.small_lights}
 
-                【心を込めたアドバイスのルール】
-                1. 今のバランスを判定してね:
-                   教えてもらった内容から、今の「自分軸」と「外部軸」が何パーセントくらいか、優しく教えてあげてください。体調が悪い時は、無理せず自分を休ませる比率を多めに判定してね。
+                【アドバイス方針】
+                1. 占有率診断: {st.session_state.external_occupancy}%という数値を見て、どう『仕分け』すべきか優しく助言して。
+                2. 外部軸(30%): 義務や圧を、高く跳ぶための「追い風」や「反発力」として肯定的に捉え直して。
+                3. 自分軸(70%): 空欄なら、心をホッとさせる五感の過ごし方を3つ。
+                4. 称号: 温かくてかっこいい名前を付けて。
 
-                2. 外部軸（30%）を味方にする言葉:
-                   周りへの期待や「やらなきゃいけないこと」は、あなたを苦しめるものではなく、「鎮痛剤」「追い風」のようなものです。それをどう受け止めたら心が軽くなるか、優しい言葉で伝えてください。
-
-                3. 自分軸（70%）を育てるアドバイス:
-                   - 【何か書きたいことがある時】: その素敵な目標や願いを大切にできるよう、一歩踏み出すための優しいエールを送ってください。
-                   - 【何も思い浮かばない時】: 今は心が少しお疲れかもしれません。そんな時は無理に探さず、好きな音楽を聴いたり、映画を観たりして、心が「ホッ」とするような具体的な過ごし方を3つ提案してください。
-
-                4. 称号をプレゼント:
-                   「自分を大切にできている自分、いいな」と思えるような、温かくて素敵な名前を考えてあげてください。
-
-                【お返事の形（JSON）】
+                【JSON構造】
                 {{
-                    "judged_self_ratio": 70, 
-                    "ratio_analysis": "今の心のバランスを、分かりやすく優しい言葉で解説",
-                    "axis_action": "自分らしく過ごすための、今日からできる優しい提案",
-                    "respect_external": "周りの期待や義務を、味方にするための温かい考え方",
-                    "daily_title": "あなたに贈る今日の名前",
-                    "somatic_work": "1分間で心が落ち着く、簡単なリラックス法"
+                    "judged_self_ratio": {100 - st.session_state.external_occupancy}, 
+                    "ratio_analysis": "占有率に基づいた心のバランス解説",
+                    "axis_action": "自分らしく過ごすためのアクション",
+                    "respect_external": "外部軸を味方にする考え方",
+                    "daily_title": "あなたに贈る称号",
+                    "somatic_work": "簡単なリラックス法"
                 }}
                 """
                 res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
@@ -120,27 +144,22 @@ elif st.session_state.step == 3:
     scan = st.session_state.brain_scan
     st.title("📋 Step 3: 調律完了")
     
-    # 安全にデータを取り出すための .get() を使用
-    title = scan.get('daily_title', 'SUNAOな旅人')
-    st.success(f"### 称号：『 {title} 』")
+    st.success(f"### 称号：『 {scan.get('daily_title', 'SUNAOな旅人')} 』")
     
+    # 比率ビジュアライズ
     fig, ax = plt.subplots(figsize=(6, 1.2))
     r = scan.get('judged_self_ratio', 70)
-    ax.barh(["Axis"], [r], color="#3498db")
-    ax.barh(["Axis"], [100-r], left=[r], color="#e67e22")
+    ax.barh(["Axis"], [r], color="#3498db") # 自分軸
+    ax.barh(["Axis"], [100-r], left=[r], color="#e67e22") # 外部軸
     ax.set_xlim(0, 100)
     ax.axis('off')
     st.pyplot(fig)
+    st.caption(f"🔵 自分軸: {r}% / 🟠 外部軸: {100-r}% (AI Tune)")
 
     st.divider()
-    # キーを ratio_analysis に統一
-    st.info(f"⚖️ **比率のデバッグ:**\n{scan.get('ratio_analysis', '解析中...')}")
-    st.success(f"🚀 **自分軸(70%)への道:**\n{scan.get('axis_action', '自分を信じて進みましょう。')}")
-    st.warning(f"🤝 **30%の外部軸を尊重する:**\n{scan.get('respect_external', '外部の力もあなたの支えです。')}")
-    st.write(f"🛠️ **身体スイッチ:** {scan.get('somatic_work', '深呼吸をしましょう。')}")
+    st.info(f"⚖️ **心のデバッグ報告:**\n{scan.get('ratio_analysis', '...')}")
+    st.success(f"🚀 **自分軸(70%)を輝かせる:**\n{scan.get('axis_action', '...')}")
+    st.warning(f"🤝 **30%の外部軸を味方にする:**\n{scan.get('respect_external', '...')}")
+    st.write(f"🛠️ **身体スイッチ:** {scan.get('somatic_work', '...')}")
 
     if st.button("最初に戻る"): move_to(1)
-
-
-
-
