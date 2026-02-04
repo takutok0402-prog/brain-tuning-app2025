@@ -53,7 +53,7 @@ elif st.session_state.step == 2:
     col_in1, col_in2 = st.columns(2)
     with col_in1:
         st.markdown("### 🔵 あなたの領域 (Self-Axis)")
-        st.caption("本音、やりたいこと、身体感覚、理想。")
+        st.caption("本音、やりたいこと、身体感覚、なりたい自分。")
         st.session_state.sunao_input = st.text_area("自分軸の箱", height=150, placeholder="例：英語を取得したい。筋トレで強くなるんだ。")
     with col_in2:
         st.markdown("### 🟠 社会の領域 (External-Axis)")
@@ -141,3 +141,4 @@ elif st.session_state.step == 3:
     st.write(scan.get('somatic_work', '...'))
 
     if st.button("機体をリセットして最初に戻る"): move_to(1)
+
