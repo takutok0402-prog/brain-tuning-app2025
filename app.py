@@ -15,9 +15,9 @@ st.set_page_config(page_title="SUNAO | Holistic Tuner", page_icon="🧘", layout
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
-    model_id = 'gemini-2.5-flash'
+    model_id = 'gemini-2.5-flash' # 最新モデル推奨
 else:
-    st.error("APIキーが未設定です。環境変数 GEMINI_API_KEY を確認してください。")
+    st.error("APIキーが未設定です。")
 
 # セッション管理
 if 'step' not in st.session_state: st.session_state.step = 1
@@ -27,7 +27,7 @@ def move_to(step):
     st.session_state.step = step
     st.rerun()
 
-# --- STEP 1: 身体スキャン（機体コンディション） ---
+# --- STEP 1: 身体スキャン（変更なし） ---
 if st.session_state.step == 1:
     st.title("🌈 Step 1: 身体スキャン")
     st.markdown("今の身体の声を丁寧に拾い上げ、チューニングの土台を作ります。")
@@ -41,67 +41,64 @@ if st.session_state.step == 1:
         st.session_state.pleasant_val = st.select_slider("🍃 今の気分", options=["つらい", "不快", "普通", "良い", "最高"], value="普通")
 
     st.divider()
-    st.session_state.safebase_val = st.radio("🏠 今、ここはあなたの「聖域（安心できる場所）」ですか？", ["はい", "いいえ（戦闘態勢/警戒中）"], index=0)
+    st.session_state.safebase_val = st.radio("🏠 今、ここはあなたの「聖域」ですか？", ["はい", "いいえ（警戒中）"], index=0)
 
-    if st.button("Step 2 脳内ログへ ➔", type="primary"): move_to(2)
+    if st.button("脳内ログ（一括入力）へ ➔", type="primary"): move_to(2)
 
-# --- STEP 2: 脳内ログ & 占有率（仕分けの準備） ---
+# --- STEP 2: 脳内ログ（一括入力 & 自動仕分け） ---
 elif st.session_state.step == 2:
-    st.title("🔍 Step 2: 軸の成分と占有率")
-    st.info("✨ **心にあるものをすべて吐き出してください。** AIデバッガーがあなたの『領土』を正しく守ります。")
+    st.title("🔍 Step 2: 脳内デフラグ")
+    st.info("✨ **今、心にあるものをすべて、この箱に吐き出してください。**\nAIデバッガーが「自分軸（70%）」と「外部ノイズ（30%）」に自動で仕分けます。")
     
-    col_in1, col_in2 = st.columns(2)
-    with col_in1:
-        st.markdown("### 🔵 あなたの領域 (Self-Axis)")
-        st.caption("本音、やりたいこと、身体感覚、なりたい自分。")
-        st.session_state.sunao_input = st.text_area("自分軸の箱", height=150, placeholder="例：英語を取得したい。筋トレで強くなるんだ。")
-    with col_in2:
-        st.markdown("### 🟠 社会の領域 (External-Axis)")
-        st.caption("不安、後悔、他人の視線、執着、義務、未練。")
-        st.session_state.social_input = st.text_area("外部軸（ノイズ・燃料）の箱", height=150, placeholder="例：あの時こうしてれば。期待に応えなきゃ。うまくいくかな、、")
+    # 入力欄をひとつに統合
+    st.session_state.raw_input = st.text_area(
+        "脳内のログをすべて書き出してください（悩み、願望、不安、今日のタスク...）", 
+        height=300, 
+        placeholder="例：あの時こうしてれば、、うまくいくかな、、〇〇しないと。しんどい。"
+    )
 
     st.divider()
-    st.subheader("🧠 外部軸が脳を占領している割合")
-    ext_percent = st.slider("占有率を選択 (10%刻み)", 0, 100, 30, 10)
-    st.session_state.external_occupancy = ext_percent
-
-    # 占有率バーの視覚化
-    r, g, b = (52 + (231 - 52) * (ext_percent / 100), 152 + (76 - 152) * (ext_percent / 100), 219 + (60 - 219) * (ext_percent / 100))
-    st.markdown(f"""<div style="width: 100%; background-color: #eee; border-radius: 10px; height: 15px;"><div style="width: {ext_percent}%; background-color: rgb({int(r)},{int(g)},{int(b)}); height: 100%; border-radius: 10px;"></div></div>""", unsafe_allow_html=True)
     
-    if st.button("全エネルギーを動力に変換 ➔", type="primary"):
-        with st.spinner("デバッガーが領土を精査中..."):
-            try:
-                model = genai.GenerativeModel(model_id)
-                prompt = f"""
-                あなたは「SUNAOシステム」の最強デバッガー兼メカニックです。
+    if st.button("全エネルギーを解析・変換 ➔", type="primary"):
+        if not st.session_state.raw_input:
+            st.warning("何か言葉を投げ込んでください。素材がないと料理が作れません！")
+        else:
+            with st.spinner("デバッガーが素材を精査・仕分け中..."):
+                try:
+                    model = genai.GenerativeModel(model_id)
+                    prompt = f"""
+                    あなたは「SUNAOシステム」の最強デバッガーです。
+                    ユーザーから提出された未整理の「脳内ログ」を、70:30理論に基づいて精密に仕分けなさい。
 
-                【最重要任務：領土のオーディット（監査）】
-                ユーザーが「自分軸」に書いた内容に、他人の反応や過去など「コントロール不能なこと」が混ざっていないか厳しく精査して。
-                混ざっていたら、それを「外部軸」へ移動し、その理由をデバッガーとして優しく、論理的に説明して。
+                    【仕分けルール】
+                    1. 自分軸 (Internal 70%): 自分の行動、思考、五感、コントロール可能な現在と未来のタスク。
+                    2. 外部軸 (External 30%): 他人の反応、過去、環境（天気など）、自分ではコントロール不可能な不安や期待。
 
-                【70:30理論の適用】
-                1. 燃料肯定(Turbo): 外部軸の未練や不安を「素晴らしい熱量」として全肯定し、「燃やせ」と伝えて。
-                2. 二階層調律(Somatic): 自分軸が希薄（空欄や混乱）なら「五感ワーク」、明確なら「加速ワーク」を処方して。
+                    【データ】
+                    ユーザー入力: {st.session_state.raw_input}
+                    
+                    【解析任務】
+                    - 入力文から「自分軸」と「外部軸」の要素を抽出しなさい。
+                    - 文章全体の熱量や単語数から、現在の「外部軸（ノイズ）の脳内占有率(0-100%)」を推定しなさい。
 
-                【データ】
-                自分軸: {st.session_state.sunao_input} / 外部軸: {st.session_state.social_input} / 占有率: {st.session_state.external_occupancy}%
-                
-                【JSON構造】
-                {{
-                    "daily_title": "称号",
-                    "audit_report": "自分軸から外部軸へ移動させたものとその理由（無ければ『完璧な仕分け』と称賛）",
-                    "my_territory": ["精査後の自分軸リスト"],
-                    "external_territory": ["精査後の外部軸リスト"],
-                    "turbo_message": "外部の熱を燃料として肯定し、背中を押す熱いメッセージ",
-                    "boost_action": "今日すぐ実行できる、自分を前進させる具体的で小さな一歩",
-                    "somatic_work": "五感アプローチまたは身体調整（自分軸の状態に合わせて選択）"
-                }}
-                """
-                res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-                st.session_state.brain_scan = json.loads(res.text)
-                move_to(3)
-            except Exception as e: st.error(f"デバッグエラー: {e}")
+                    【JSON構造】
+                    {{
+                        "daily_title": "今の状態を象徴する称号",
+                        "estimated_external_occupancy": 0から100の数値,
+                        "audit_report": "なぜこのように仕分けたか、デバッガーとしての短い見解",
+                        "my_territory": ["自分軸に分類された項目リスト"],
+                        "external_territory": ["外部軸に分類された項目リスト"],
+                        "turbo_message": "外部の熱（未練や不安）を、自分を動かす燃料に変える熱い言葉",
+                        "boost_action": "今日1ミリ更新するための具体的アクション",
+                        "somatic_work": "今の状態に最適な身体調整（接地ワーク）"
+                    }}
+                    """
+                    res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+                    st.session_state.brain_scan = json.loads(res.text)
+                    # 推定された占有率をセッションに保存
+                    st.session_state.external_occupancy = st.session_state.brain_scan.get('estimated_external_occupancy', 30)
+                    move_to(3)
+                except Exception as e: st.error(f"デバッグエラー: {e}")
 
 # --- STEP 3: レポート（調律完了） ---
 elif st.session_state.step == 3:
@@ -109,26 +106,28 @@ elif st.session_state.step == 3:
     st.title("📋 調律完了レポート")
     st.success(f"### 称号：『 {scan.get('daily_title', 'SUNAOな旅人')} 』")
 
-    # 比率グラフ
+    # AIが推定した占有率でグラフを表示
+    ext_p = st.session_state.external_occupancy
+    r = 100 - ext_p
+    
     fig, ax = plt.subplots(figsize=(6, 0.8))
-    r = 100 - st.session_state.external_occupancy
     ax.barh(["Axis"], [r], color="#3498db") # 自分軸
-    ax.barh(["Axis"], [100-r], left=[r], color="#e67e22") # 外部軸
+    ax.barh(["Axis"], [ext_p], left=[r], color="#e67e22") # 外部軸
     ax.set_xlim(0, 100)
     ax.axis('off')
     st.pyplot(fig)
-    st.caption(f"🔵 自分軸: {r}%（主体） / 🟠 外部軸: {100-r}%（燃料）")
+    st.caption(f"🔵 自分軸: {r}%（あなたの領土） / 🟠 外部軸: {ext_p}%（燃やすべき燃料）")
 
     st.divider()
-    st.subheader("🔍 デバッガーの領土オーディット")
+    st.subheader("🔍 デバッガーの見解")
     st.info(scan.get('audit_report', '...'))
 
     col_r1, col_r2 = st.columns(2)
     with col_r1:
-        st.markdown("**🔵 守るべきあなたの聖域 (70%)**")
+        st.markdown("**🔵 あなたがコントロールできること (70%)**")
         for t in scan.get('my_territory', []): st.write(f"✅ {t}")
     with col_r2:
-        st.markdown("**🟠 燃やすべき外部の熱 (30%)**")
+        st.markdown("**🟠 あなたが手放し、燃料にするもの (30%)**")
         for t in scan.get('external_territory', []): st.write(f"🔥 {t}")
 
     st.divider()
@@ -141,4 +140,3 @@ elif st.session_state.step == 3:
     st.write(scan.get('somatic_work', '...'))
 
     if st.button("機体をリセットして最初に戻る"): move_to(1)
-
