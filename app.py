@@ -65,7 +65,7 @@ elif st.session_state.step == 2:
     st.caption("好きなこと、趣味、集中できること。これらがあなたの幸せの軸になります。")
     st.session_state.likes_input = st.text_input(
         "好きなこと・趣味・なりたい自分", 
-        placeholder="例：映画、温泉、料理、英語ができる自分、筋トレして強い自分"
+        placeholder="例：映画、温泉、料理、英語習得したい、"
     )
 
     if st.button("全エネルギーを解析・変換 ➔", type="primary"):
@@ -146,3 +146,4 @@ elif st.session_state.step == 3:
     st.write(scan.get('somatic_work', '...'))
 
     if st.button("機体をリセットして最初に戻る"): move_to(1)
+
